@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!--
+    booklist.html
+    Author: Claude (Anthropic) — claude.ai
+    Version: 0.1.0 — Initial version: load titles and authors data files,
+                      display first/last 5 lines of each.
+    Created: 2026-05-17
+  -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="author" content="Claude (Anthropic)">
+  <meta name="version" content="0.1.0">
+  <meta name="description" content="Book list search tool">
+  <title>Book List</title>
+  <style>
+    :root {
+      --bg: #1a1a18;
+      --surface: #25251f;
+      --border: #3a3a30;
+      --accent: #c8a84b;
+      --accent-dim: #8a7030;
+      --text: #e8e4d8;
+      --text-dim: #9a9484;
+      --mono: 'Courier New', Courier, monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: Georgia, 'Times New Roman', serif;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    header {
+      border-bottom: 1px solid var(--accent-dim);
+      padding-bottom: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    header h1 {
+      font-size: 1.8rem;
+      color: var(--accent);
+      letter-spacing: 0.05em;
+    }
+
+    #status {
+      margin-top: 0.4rem;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      font-family: var(--mono);
+    }
+
+    #controls {
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      padding: 1rem 0;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 1.5rem;
+      z-index: 10;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .control-group label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-dim);
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    button {
+      background: var(--surface);
+      color: var(--accent);
+      border: 1px solid var(--accent-dim);
+      padding: 0.4rem 0.9rem;
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    button:hover:not(:disabled) {
+      background: var(--accent-dim);
+      color: var(--bg);
+    }
+
+    button:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    #reload-btn {
+      align-self: flex-end;
+      margin-left: auto;
+      border-color: var(--text-dim);
+      color: var(--text-dim);
+      font-size: 0.75rem;
+    }
+
+    #reload-btn:hover:not(:disabled) {
+      background: var(--text-dim);
+      color: var(--bg);
+    }
+
+    #results {
+      font-family: var(--mono);
+      font-size: 0.9rem;
+      line-height: 1.7;
+    }
+
+    .result-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      padding: 1rem 1.2rem;
+      margin-bottom: 1rem;
+    }
+
+    .result-block h2 {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      margin-bottom: 0.75rem;
+      font-family: Georgia, serif;
+    }
+
+    .result-block pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: var(--text);
+    }
+
+    .placeholder {
+      color: var(--text-dim);
+      font-style: italic;
+      padding: 2rem 0;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Book List</h1>
+  <div id="status">Loading data files…</div>
+</header>
+
+<div id="controls">
+  <div class="control-group">
+    <label>Titles</label>
+    <div class="btn-row">
+      <button id="titles-first" disabled onclick="showLines('titles', 'first')">First 5</button>
+      <button id="titles-last"  disabled onclick="showLines('titles', 'last')">Last 5</button>
+    </div>
+  </div>
+
+  <div class="control-group">
+    <label>Authors</label>
+    <div class="btn-row">
+      <button id="authors-first" disabled onclick="showLines('authors', 'first')">First 5</button>
+      <button id="authors-last"  disabled onclick="showLines('authors', 'last')">Last 5</button>
+    </div>
+  </div>
+
+  <button id="reload-btn" onclick="loadData()">↺ Reload Data</button>
+</div>
+
+<div id="results">
+  <p class="placeholder">Use the buttons above to inspect the data files.</p>
+</div>
+
+<script>
+  const URLS = {
+    titles:  'https://raw.githubusercontent.com/shanen5/bl/master/titles.txt',
+    authors: 'https://raw.githubusercontent.com/shanen5/bl/master/authors.txt'
+  };
+
+  // In-memory store — loaded once, reused for every search
+  const data = {
+    titles:  null,
+    authors: null
+  };
+
+  function setStatus(msg) {
+    document.getElementById('status').textContent = msg;
+  }
+
+  function setButtonsEnabled(enabled) {
+    ['titles-first', 'titles-last', 'authors-first', 'authors-last']
+      .forEach(id => document.getElementById(id).disabled = !enabled);
+  }
+
+  async function loadData() {
+    setButtonsEnabled(false);
+    setStatus('Loading data files…');
+
+    try {
+      const [titlesRes, authorsRes] = await Promise.all([
+        fetch(URLS.titles),
+        fetch(URLS.authors)
+      ]);
+
+      if (!titlesRes.ok)  throw new Error(`titles.txt: HTTP ${titlesRes.status}`);
+      if (!authorsRes.ok) throw new Error(`authors.txt: HTTP ${authorsRes.status}`);
+
+      const titlesText  = await titlesRes.text();
+      const authorsText = await authorsRes.text();
+
+      // Split into non-empty lines
+      data.titles  = titlesText.split('\n').filter(l => l.trim() !== '');
+      data.authors = authorsText.split('\n').filter(l => l.trim() !== '');
+
+      const loaded = new Date().toLocaleTimeString();
+      setStatus(
+        `Loaded ${loaded} — titles: ${data.titles.length} lines, authors: ${data.authors.length} lines`
+      );
+      setButtonsEnabled(true);
+
+    } catch (err) {
+      setStatus(`Error loading data: ${err.message}`);
+      console.error(err);
+    }
+  }
+
+  function showLines(file, position) {
+    const lines = data[file];
+    if (!lines) return;
+
+    const slice = position === 'first' ? lines.slice(0, 5) : lines.slice(-5);
+    const label = `${file.charAt(0).toUpperCase() + file.slice(1)} — ${position} 5 lines`;
+
+    document.getElementById('results').innerHTML = `
+      <div class="result-block">
+        <h2>${label}</h2>
+        <pre>${escapeHtml(slice.join('\n'))}</pre>
+      </div>
+    `;
+  }
+
+  function escapeHtml(str) {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  // Load once on startup — no auto-refresh after this
+  loadData();
+</script>
+
+</body>
+</html>
