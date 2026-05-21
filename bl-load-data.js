@@ -13,6 +13,8 @@
  *
  * Author:  Claude (Anthropic) — claude.ai
  * Version: 1.0 — Initial separation from Git-Booklist.html (v2)
+ * Version: 1.1 — Fix blank record at end of file caused by DOS \r\n line endings
+ *                from dBase II output; trim each line before filtering.
  * Created: 2026-05-20
  */
 
@@ -60,8 +62,8 @@ async function loadData() {
     const titlesText  = await titlesRes.text();
     const authorsText = await authorsRes.text();
 
-    bookData.titles   = titlesText.split('\n').filter(l => l.trim() !== '');
-    bookData.authors  = authorsText.split('\n').filter(l => l.trim() !== '');
+    bookData.titles   = titlesText.split('\n').map(l => l.trim()).filter(l => l !== '');
+    bookData.authors  = authorsText.split('\n').map(l => l.trim()).filter(l => l !== '');
     bookData.loadedAt = new Date();
 
     setStatus(
