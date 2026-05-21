@@ -18,6 +18,8 @@
  * Version: 1.2 — Strip Ctrl-Z (ASCII 26, \x1a) DOS end-of-file marker before
  *                splitting, as it survives the dBase II /A copy and causes a
  *                phantom blank record at the end of each file.
+ * Version: 1.3 — Call updateElapsed() after successful load to update the
+ *                data age display in the Data Loading section.
  * Created: 2026-05-20
  */
 
@@ -75,6 +77,7 @@ async function loadData() {
       `authors: ${bookData.authors.length} lines`
     );
     setButtonsEnabled(true);
+    if (typeof updateElapsed === 'function') updateElapsed();
 
   } catch (err) {
     setStatus(`Error loading data: ${err.message}`);
