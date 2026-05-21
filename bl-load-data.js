@@ -15,6 +15,9 @@
  * Version: 1.0 — Initial separation from Git-Booklist.html (v2)
  * Version: 1.1 — Fix blank record at end of file caused by DOS \r\n line endings
  *                from dBase II output; trim each line before filtering.
+ * Version: 1.2 — Strip Ctrl-Z (ASCII 26, \x1a) DOS end-of-file marker before
+ *                splitting, as it survives the dBase II /A copy and causes a
+ *                phantom blank record at the end of each file.
  * Created: 2026-05-20
  */
 
@@ -62,8 +65,8 @@ async function loadData() {
     const titlesText  = await titlesRes.text();
     const authorsText = await authorsRes.text();
 
-    bookData.titles   = titlesText.split('\n').map(l => l.trim()).filter(l => l !== '');
-    bookData.authors  = authorsText.split('\n').map(l => l.trim()).filter(l => l !== '');
+    bookData.titles   = titlesText.replace(/\x1a/g, '').split('\n').map(l => l.trim()).filter(l => l !== '');
+    bookData.authors  = authorsText.replace(/\x1a/g, '').split('\n').map(l => l.trim()).filter(l => l !== '');
     bookData.loadedAt = new Date();
 
     setStatus(
