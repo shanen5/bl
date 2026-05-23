@@ -16,13 +16,18 @@
                    60 seconds via setInterval. Update script tag to bl-load-data.js
                    v1.4 which parses records into structured objects and converts
                    dateRead to JavaScript Date.
+    Version: 2.3 — Add Display Options collapsible section between Search Controls
+                   and Results. Checkboxes for Title, PubYear, Date Read, Authors,
+                   Subjects with Title and Date Read checked by default. Last
+                   checked box is prevented from being unchecked.
+                   Update bl-display.js to v1.1.
     Created:  2026-05-17
-    Modified: 2026-05-23
+    Modified: 2026-05-24
   -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="author" content="Claude (Anthropic)">
-  <meta name="version" content="2.2">
+  <meta name="version" content="2.3">
   <meta name="description" content="Book list search tool">
   <title>Book List</title>
   <style>
@@ -165,6 +170,36 @@
       color: var(--text-dim);
     }
 
+    /* ── Display Options section ── */
+    .checkbox-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .checkbox-item input[type="checkbox"] {
+      width: 1.1rem;
+      height: 1.1rem;
+      cursor: pointer;
+      accent-color: var(--accent);
+    }
+
+    .checkbox-item.last-checked {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
     /* ── Results section ── */
     #results {
       font-family: var(--mono);
@@ -207,6 +242,7 @@
       body { padding: 0.5rem; }
       h1 { font-size: 1.2rem; }
       button { padding: 0.65rem 0.8rem; font-size: 1rem; flex: 1; }
+      .checkbox-row { gap: 0.75rem; }
     }
   </style>
 </head>
@@ -236,16 +272,41 @@
   <div class="control-group">
     <label>Titles</label>
     <div class="btn-row">
-      <button id="titles-first" disabled onclick="showLines('titles', 'first')">First 5</button>
-      <button id="titles-last"  disabled onclick="showLines('titles', 'last')">Last 5</button>
+      <button id="titles-first" disabled onclick="showRecords('titles', 'first')">First 5</button>
+      <button id="titles-last"  disabled onclick="showRecords('titles', 'last')">Last 5</button>
     </div>
   </div>
   <div class="control-group">
     <label>Authors</label>
     <div class="btn-row">
-      <button id="authors-first" disabled onclick="showLines('authors', 'first')">First 5</button>
-      <button id="authors-last"  disabled onclick="showLines('authors', 'last')">Last 5</button>
+      <button id="authors-first" disabled onclick="showRecords('authors', 'first')">First 5</button>
+      <button id="authors-last"  disabled onclick="showRecords('authors', 'last')">Last 5</button>
     </div>
+  </div>
+</div>
+
+<!-- ── DISPLAY OPTIONS ── -->
+<div class="section-header" onclick="toggleSection('display-options')">
+  <h2>Display Options</h2>
+  <span class="section-toggle" id="display-options-toggle">▲ hide</span>
+</div>
+<div class="section-body" id="display-options">
+  <div class="checkbox-row">
+    <label class="checkbox-item">
+      <input type="checkbox" id="opt-title"    checked onchange="guardCheckboxes()"> Title
+    </label>
+    <label class="checkbox-item">
+      <input type="checkbox" id="opt-pubyear"         onchange="guardCheckboxes()"> PubYear
+    </label>
+    <label class="checkbox-item">
+      <input type="checkbox" id="opt-dateread" checked onchange="guardCheckboxes()"> Date Read
+    </label>
+    <label class="checkbox-item">
+      <input type="checkbox" id="opt-authors"         onchange="guardCheckboxes()"> Authors
+    </label>
+    <label class="checkbox-item">
+      <input type="checkbox" id="opt-subjects"        onchange="guardCheckboxes()"> Subjects
+    </label>
   </div>
 </div>
 
@@ -262,13 +323,40 @@
 
 <!-- Load external JS modules first, then initialise -->
 <script src="bl-load-data.js?v=1.4"></script>
-<script src="bl-display.js?v=1.0"></script>
+<script src="bl-display.js?v=1.1"></script>
 <script>
   function toggleSection(id) {
     const body = document.getElementById(id);
     const toggle = document.getElementById(id + '-toggle');
     const collapsed = body.classList.toggle('collapsed');
     toggle.textContent = collapsed ? '▼ show' : '▲ hide';
+  }
+
+  // Prevent unchecking the last checked display option
+  function guardCheckboxes() {
+    const boxes = document.querySelectorAll('#display-options input[type="checkbox"]');
+    const checked = Array.from(boxes).filter(b => b.checked);
+    boxes.forEach(b => {
+      const item = b.closest('.checkbox-item');
+      if (checked.length === 1 && b.checked) {
+        b.disabled = true;
+        item.classList.add('last-checked');
+      } else {
+        b.disabled = false;
+        item.classList.remove('last-checked');
+      }
+    });
+  }
+
+  // Return current display options as an object
+  function getDisplayOptions() {
+    return {
+      title:    document.getElementById('opt-title').checked,
+      pubYear:  document.getElementById('opt-pubyear').checked,
+      dateRead: document.getElementById('opt-dateread').checked,
+      authors:  document.getElementById('opt-authors').checked,
+      subjects: document.getElementById('opt-subjects').checked
+    };
   }
 
   // Update elapsed time display — called at load and every 60 seconds
