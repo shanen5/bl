@@ -11,13 +11,18 @@
     Version: 2.1 — Three labeled collapsible sticky sections: Data Loading,
                    Search Controls, Results. Mobile-friendly sizing.
                    Elapsed time display in Data Loading section.
+    Version: 2.2 — Fix data age display: fractional days format (e.g. 2.25 days),
+                   label changed to "Data loaded X days ago", refreshes every
+                   60 seconds via setInterval. Update script tag to bl-load-data.js
+                   v1.4 which parses records into structured objects and converts
+                   dateRead to JavaScript Date.
     Created:  2026-05-17
-    Modified: 2026-05-21
+    Modified: 2026-05-23
   -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="author" content="Claude (Anthropic)">
-  <meta name="version" content="2.1">
+  <meta name="version" content="2.2">
   <meta name="description" content="Book list search tool">
   <title>Book List</title>
   <style>
@@ -256,7 +261,7 @@
 </div>
 
 <!-- Load external JS modules first, then initialise -->
-<script src="bl-load-data.js?v=1.3"></script>
+<script src="bl-load-data.js?v=1.4"></script>
 <script src="bl-display.js?v=1.0"></script>
 <script>
   function toggleSection(id) {
@@ -266,15 +271,16 @@
     toggle.textContent = collapsed ? '▼ show' : '▲ hide';
   }
 
-  // Update elapsed time display — called from bl-load-data.js after load
+  // Update elapsed time display — called at load and every 60 seconds
   function updateElapsed() {
     const el = document.getElementById('elapsed');
     if (!bookData.loadedAt) { el.textContent = ''; return; }
     const days = (Date.now() - bookData.loadedAt.getTime()) / (1000 * 60 * 60 * 24);
-    el.textContent = days < 1
-      ? `Data age: ${(days * 24).toFixed(1)} hours`
-      : `Data age: ${days.toFixed(1)} days`;
+    el.textContent = `Data loaded ${days.toFixed(2)} days ago`;
   }
+
+  // Refresh the data age display every 60 seconds
+  setInterval(updateElapsed, 60000);
 
   // Load data once on startup — no auto-refresh after this
   loadData();
