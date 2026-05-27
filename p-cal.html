@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="Deepseek-V3">
+    <meta name="version" content="1.0">
+    <title>Perpetual Calendar</title>
+</head>
+<body>
+    <h1>Perpetual Calendar</h1>
+    <div id="calendar"></div>
+
+    <script>
+        // Function to fetch and process the data
+        async function fetchAndProcessData() {
+            const url = "https://raw.githubusercontent.com/shanen5/bl/refs/heads/master/titles.txt";
+            const fieldPositions = { "readday": { start: 48, end: 50 } };  // Updated to use 'readday'
+            const results = {};
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error("Network response was not ok " + response.statusText);
+
+                const fileContent = await response.text();
+                const lines = fileContent.split(/\r?\n/);  // Split the file content into lines
+
+                lines.forEach(line => {
+                    const { start, end } = fieldPositions["readday"];
+                    if (line.length >= end) {  // Ensure line is long enough for the selected field
+                        const substring = line.substring(start, end);
+                        if (results[substring]) {
+                            results[substring]++;
+                        } else {
+                            results[substring] = 1;  // Initialize counter for new value
+                        }
+                    }
+                });
+
+                return results;
+            } catch (error) {
+                console.error("Error fetching or processing the file:", error);
+                return {};  // Return empty results in case of error
+            }
+        }
+
+        // Function to generate the calendar
+        function generateCalendar(data) {
+            const totalEachDay = Array(31).fill(0);  // Initialize array for days of the month
+
+            // Populate the array with data
+            for (const [day, count] of Object.entries(data)) {
+                const dayIndex = parseInt(day) - 1;  // Convert day to zero-based index
+                if (dayIndex >= 0 && dayIndex < 31) {
+                    totalEachDay[dayIndex] = count;
+                }
+            }
+
+            const target = 179;  // Target value for comparison
+            const weekday = new Date().getDay();
+            const monthday = new Date().getDate();
+            const skipDays = (((weekday + 1) % 7) + 7 - (monthday % 7)) % 7;
+
+            let calendarHTML = '<p>Books read for each day of the month (Current target is ' + target + '.)</p>';
+            calendarHTML += '<table width="100%" border="1"><tr>';
+            calendarHTML += '<th>Sun<br>------</th>';
+            calendarHTML += '<th>Mon<br>------</th>';
+            calendarHTML += '<th>Tue<br>------</th>';
+            calendarHTML += '<th>Wed<br>------</th>';
+            calendarHTML += '<th>Thu<br>------</th>';
+            calendarHTML += '<th>Fri<br>------</th>';
+            calendarHTML += '<th>Sat<br>------</th>';
+            calendarHTML += '</tr><tr>';
+
+            let currentWeekday = 0;
+            for (let i = 0 - skipDays; i < totalEachDay.length + (11 - skipDays) % 7; i++) {
+                if (i < 0) {
+                    calendarHTML += '<td> ';
+                } else if (i < 31) {
+                    const value = totalEachDay[i];
+                    let color = "white";  // Default color
+
+                    if (value < target - 3) color = "lightgreen";
+                    else if (value === target - 3) color = "#b5f360";
+                    else if (value === target - 2) color = "#daf830";
+                    else if (value === target - 1) color = "yellow";
+                    else if (value === target) color = "cyan";
+                    else color = "magenta";
+
+                    calendarHTML += `<td bgcolor="${color}">`;
+                    if (i === monthday - 1) {
+                        calendarHTML += `<b><i><font color="darkred">${i + 1}<br>${value}</font></i></b>`;
+                    } else {
+                        calendarHTML += `${i + 1}<br>${value}`;
+                    }
+                } else {
+                    calendarHTML += '<td> ';
+                }
+                calendarHTML += '</td>';
+                currentWeekday++;
+                if (currentWeekday === 7) {
+                    calendarHTML += '</tr><tr>';
+                    currentWeekday = 0;
+                }
+            }
+            calendarHTML += '</tr></table>';
+            calendarHTML += '<p>' + new Date() + '</p>';
+
+            document.getElementById("calendar").innerHTML = calendarHTML;
+        }
+
+        // Main function to load data and generate the calendar
+        async function loadCalendar() {
+            const data = await fetchAndProcessData();
+            generateCalendar(data);
+        }
+
+        // Automatically load the calendar when the page loads
+        window.onload = loadCalendar;
+    </script>
+</body>
+</html>
