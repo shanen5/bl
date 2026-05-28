@@ -32,13 +32,18 @@
                    Controls starts open. Regex explanation replaced with single
                    short permanent line. Search field selectors changed from
                    checkboxes to radio buttons, Title default, Author disabled.
+    Version: 2.6 — Updated regex hint text. Results section always open with no
+                   max-height limit. Sort options added to Display Options:
+                   radio buttons for sort field (none/Title/PubYear/Date Read/
+                   Subjects), Asc/Desc toggle, default none/asc. Sort applied
+                   after search in doSearch(). bl-search.js updated to v1.2.
     Created:  2026-05-17
     Modified: 2026-05-28
   -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="author" content="Claude (Anthropic)">
-  <meta name="version" content="2.5">
+  <meta name="version" content="2.6">
   <meta name="description" content="Book list search tool">
   <link rel="icon" type="image/x-icon" href="/bl/favicon.ico">
   <title>Book List</title>
@@ -130,6 +135,12 @@
       padding-bottom: 0;
     }
 
+    /* Results section — always open, no height limit */
+    #results-section {
+      max-height: none;
+      overflow: visible;
+    }
+
     /* ── Data Loading section ── */
     #status {
       font-size: 0.8rem;
@@ -207,8 +218,8 @@
       color: var(--accent);
     }
 
-    /* ── Radio buttons ── */
-    .radio-row {
+    /* ── Radio and checkbox rows ── */
+    .radio-row, .checkbox-row {
       display: flex;
       flex-wrap: wrap;
       gap: 1rem;
@@ -216,7 +227,7 @@
       margin-bottom: 0.75rem;
     }
 
-    .radio-item {
+    .radio-item, .checkbox-item {
       display: flex;
       align-items: center;
       gap: 0.35rem;
@@ -226,36 +237,7 @@
       cursor: pointer;
     }
 
-    .radio-item input[type="radio"] {
-      width: 1.1rem;
-      height: 1.1rem;
-      cursor: pointer;
-      accent-color: var(--accent);
-    }
-
-    .radio-item.pending {
-      opacity: 0.45;
-      cursor: not-allowed;
-    }
-
-    /* ── Display Options checkboxes ── */
-    .checkbox-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
-      align-items: center;
-    }
-
-    .checkbox-item {
-      display: flex;
-      align-items: center;
-      gap: 0.35rem;
-      font-family: var(--mono);
-      font-size: 0.85rem;
-      color: var(--text);
-      cursor: pointer;
-    }
-
+    .radio-item input[type="radio"],
     .checkbox-item input[type="checkbox"] {
       width: 1.1rem;
       height: 1.1rem;
@@ -263,9 +245,30 @@
       accent-color: var(--accent);
     }
 
+    .radio-item.pending, .checkbox-item.pending {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
     .checkbox-item.last-checked {
       opacity: 0.5;
       cursor: not-allowed;
+    }
+
+    /* ── Sort direction toggle ── */
+    .sort-dir {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+      align-items: center;
+    }
+
+    .sort-dir label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-dim);
+      font-family: var(--mono);
     }
 
     /* ── Results section ── */
@@ -356,9 +359,10 @@
   <input type="text" id="search-query" placeholder="Enter search…"
          onkeydown="if(event.key==='Enter') doSearch()">
   <div class="regex-hint">
-    Allowed regex: <span>. * | ^ $ ( ) [ ] -</span> &nbsp;&mdash;&nbsp;
-    use <span>\</span> to escape &nbsp;&mdash;&nbsp;
-    <span>..</span> for date range
+    Use <span>\</span> before permitted regex characters to search for
+    <span>. * | ^ $ ( ) [ ] -</span> in Title.
+    Use <span>..</span> for a range in Date Read search.
+    Only Subjects are case sensitive.
   </div>
   <div class="radio-row">
     <label class="radio-item">
@@ -390,26 +394,61 @@
   </div>
 </div>
 <div class="section-body" id="display-options">
-  <div class="checkbox-row">
-    <label class="checkbox-item">
-      <input type="checkbox" id="opt-title"    checked onchange="guardCheckboxes()"> Title
-    </label>
-    <label class="checkbox-item">
-      <input type="checkbox" id="opt-pubyear"         onchange="guardCheckboxes()"> PubYear
-    </label>
-    <label class="checkbox-item">
-      <input type="checkbox" id="opt-dateread" checked onchange="guardCheckboxes()"> Date Read
-    </label>
-    <label class="checkbox-item">
-      <input type="checkbox" id="opt-authors"         onchange="guardCheckboxes()"> Authors
-    </label>
-    <label class="checkbox-item">
-      <input type="checkbox" id="opt-subjects"        onchange="guardCheckboxes()"> Subjects
-    </label>
+  <div class="control-group">
+    <label>Fields to display</label>
+    <div class="checkbox-row">
+      <label class="checkbox-item">
+        <input type="checkbox" id="opt-title"    checked onchange="guardCheckboxes()"> Title
+      </label>
+      <label class="checkbox-item">
+        <input type="checkbox" id="opt-pubyear"         onchange="guardCheckboxes()"> PubYear
+      </label>
+      <label class="checkbox-item">
+        <input type="checkbox" id="opt-dateread" checked onchange="guardCheckboxes()"> Date Read
+      </label>
+      <label class="checkbox-item">
+        <input type="checkbox" id="opt-authors"         onchange="guardCheckboxes()"> Authors
+      </label>
+      <label class="checkbox-item">
+        <input type="checkbox" id="opt-subjects"        onchange="guardCheckboxes()"> Subjects
+      </label>
+    </div>
+  </div>
+  <div class="control-group">
+    <label>Sort by</label>
+    <div class="radio-row">
+      <label class="radio-item">
+        <input type="radio" name="sort-field" value="none" checked> None
+      </label>
+      <label class="radio-item">
+        <input type="radio" name="sort-field" value="title"> Title
+      </label>
+      <label class="radio-item">
+        <input type="radio" name="sort-field" value="pubYear"> PubYear
+      </label>
+      <label class="radio-item">
+        <input type="radio" name="sort-field" value="dateRead"> Date Read
+      </label>
+      <label class="radio-item">
+        <input type="radio" name="sort-field" value="subjects"> Subjects
+      </label>
+      <label class="radio-item pending" title="Author sort coming soon">
+        <input type="radio" name="sort-field" value="author" disabled> Author
+      </label>
+    </div>
+    <div class="sort-dir">
+      <label>Direction:</label>
+      <label class="radio-item">
+        <input type="radio" name="sort-dir" value="asc" checked> Asc
+      </label>
+      <label class="radio-item">
+        <input type="radio" name="sort-dir" value="desc"> Desc
+      </label>
+    </div>
   </div>
 </div>
 
-<!-- ── RESULTS ── -->
+<!-- ── RESULTS (always open, no height limit) ── -->
 <div class="section-header" onclick="toggleSection('results-section')">
   <h2>Results</h2>
   <div class="header-right">
@@ -423,7 +462,7 @@
 </div>
 
 <script src="bl-load-data.js?v=1.4"></script>
-<script src="bl-search.js?v=1.0"></script>
+<script src="bl-search.js?v=1.2"></script>
 <script src="bl-display.js?v=1.2"></script>
 <script>
   function toggleSection(id) {
@@ -462,16 +501,28 @@
 
   // Return currently selected search field
   function getSearchField() {
-    const selected = document.querySelector('input[name="search-field"]:checked');
-    return selected ? selected.value : 'title';
+    const sel = document.querySelector('input[name="search-field"]:checked');
+    return sel ? sel.value : 'title';
   }
 
-  // Execute search
+  // Return current sort options
+  function getSortOptions() {
+    const field = document.querySelector('input[name="sort-field"]:checked');
+    const dir   = document.querySelector('input[name="sort-dir"]:checked');
+    return {
+      field: field ? field.value : 'none',
+      dir:   dir   ? dir.value   : 'asc'
+    };
+  }
+
+  // Execute search and sort
   function doSearch() {
     const query = document.getElementById('search-query').value;
     if (!query.trim()) return;
     const field   = getSearchField();
-    const results = searchRecords(query, field);
+    const sort    = getSortOptions();
+    let results   = searchRecords(query, field);
+    results       = sortRecords(results, sort.field, sort.dir);
     displayResults(results, `Search: ${query}`);
     const body = document.getElementById('results-section');
     if (body.classList.contains('collapsed')) toggleSection('results-section');
