@@ -18,28 +18,29 @@
  *   ..         date range e.g. 202601..20260315 (YYYYMM or YYYYMMDD)
  *
  * Exports (globals):
- *   searchRecords(query, fields) — parses query, searches bookData.titles
- *                                  against specified fields, returns matching
- *                                  records array. Date range applies to
- *                                  dateRead field. Returns [] if no match.
+ *   searchRecords(query, field) — parses query, searches bookData.titles
+ *                                 against specified field string, returns
+ *                                 matching records array. Returns [] if
+ *                                 no match or error.
  *
  * Author:  Claude (Anthropic) — claude.ai
  * Version: 1.0 — Initial separation from Git-Booklist.html (v2.4).
  *                Supports regex subset and .. date range on title field.
  *                Author search stubbed out pending v2.0 implementation.
+ * Version: 1.1 — Updated to accept single field string (radio button selection)
+ *                rather than fields object (checkbox selection), matching
+ *                Git-Booklist.html v2.5.
  * Created: 2026-05-24
+ * Modified: 2026-05-28
  *
  * Planned:
  *   v2.0 — Author search (requires joining titles and authors datasets)
  */
 
-// Allowed regex special characters — anything else is escaped
-const ALLOWED_SPECIAL = /[.*|^$()[\]\\]/g;
-
 // Parse a date string in YYYYMM or YYYYMMDD format to a comparable integer
 function parseDateBound(s) {
   s = s.trim();
-  if (s.length === 6) return parseInt(s + '00', 10);  // YYYYMM -> YYYYMM00
+  if (s.length === 6) return parseInt(s + '00', 10);
   if (s.length === 8) return parseInt(s, 10);
   return null;
 }
@@ -60,38 +61,37 @@ function parseDateRange(query) {
   const low  = parseDateBound(match[1]);
   const high = parseDateBound(match[2]);
   if (!low || !high) return null;
-  // Expand YYYYMM00 high bound to end of month (treat as YYYYMM99)
   const highAdj = String(match[2]).length === 6
     ? parseInt(match[2] + '99', 10)
     : high;
   return { low, high: highAdj };
 }
 
-// Sanitize query: strip characters not in allowed set
+// Sanitize query: escape characters not in the allowed regex subset
 function sanitizeQuery(query) {
-  // Allow only safe regex subset — remove anything unexpected
-  // We trust the allowed set defined above; other chars are escaped
   return query.replace(/[^a-zA-Z0-9.*|^$()[\]\\{}\-_' ]/g, c => '\\' + c);
 }
 
-// Search bookData.titles against specified fields using query string
-// fields: object with boolean keys matching title record fields
+// Search bookData.titles against a single field using query string
+// field: one of 'title', 'pubYear', 'dateRead', 'subjects', 'author'
 // Returns array of matching title record objects
-function searchRecords(query, fields) {
+function searchRecords(query, field) {
   if (!bookData.titles || !query.trim()) return [];
 
-  // Check for date range query on dateRead field
-  const dateRange = fields.dateRead ? parseDateRange(query.trim()) : null;
-  if (dateRange) {
-    return bookData.titles.filter(rec => {
-      const d = dateToInt(rec.dateRead);
-      if (!d) return false;
-      return d >= dateRange.low && d <= dateRange.high;
-    });
+  // Date range search applies only to dateRead field
+  if (field === 'dateRead') {
+    const dateRange = parseDateRange(query.trim());
+    if (dateRange) {
+      return bookData.titles.filter(rec => {
+        const d = dateToInt(rec.dateRead);
+        if (!d) return false;
+        return d >= dateRange.low && d <= dateRange.high;
+      });
+    }
   }
 
-  // Author search — stub, not yet implemented
-  if (fields.author) {
+  // Author search — not yet implemented
+  if (field === 'author') {
     console.warn('Author search not yet implemented');
     return [];
   }
@@ -106,13 +106,21 @@ function searchRecords(query, fields) {
     return [];
   }
 
-  // Search across selected fields
+  // Search the selected field
   return bookData.titles.filter(rec => {
-    if (fields.title    && regex.test(rec.title))               return true;
-    if (fields.pubYear  && regex.test(String(rec.pubYear || ''))) return true;
-    if (fields.subjects && regex.test(
-      [rec.subject1, rec.subject2, rec.subject3].filter(Boolean).join(' ')
-    )) return true;
-    return false;
+    switch (field) {
+      case 'title':
+        return regex.test(rec.title);
+      case 'pubYear':
+        return regex.test(String(rec.pubYear || ''));
+      case 'dateRead':
+        return regex.test(dateToInt(rec.dateRead) ? String(dateToInt(rec.dateRead)) : '');
+      case 'subjects':
+        return regex.test(
+          [rec.subject1, rec.subject2, rec.subject3].filter(Boolean).join(' ')
+        );
+      default:
+        return false;
+    }
   });
 }
