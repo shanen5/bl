@@ -1,9 +1,9 @@
 /**
  * bl-search.js
  * ------------
- * Handles parsing and execution of searches against the book data.
+ * Handles parsing, searching, and sorting of book data.
  * Reads from the global `bookData` object populated by bl-load-data.js.
- * Returns filtered arrays of records for rendering by bl-display.js.
+ * Returns filtered and sorted arrays of records for rendering by bl-display.js.
  *
  * Supported query syntax:
  *   .          any single character
@@ -18,10 +18,14 @@
  *   ..         date range e.g. 202601..20260315 (YYYYMM or YYYYMMDD)
  *
  * Exports (globals):
- *   searchRecords(query, field) — parses query, searches bookData.titles
- *                                 against specified field string, returns
- *                                 matching records array. Returns [] if
- *                                 no match or error.
+ *   searchRecords(query, field)     — parses query, searches bookData.titles
+ *                                     against specified field string, returns
+ *                                     matching records array. Returns [] if
+ *                                     no match or error.
+ *   sortRecords(records, field, dir) — sorts a records array by specified field
+ *                                     and direction ('asc' or 'desc'). Title
+ *                                     sort ignores leading articles (a/an/the).
+ *                                     Returns sorted copy, original unchanged.
  *
  * Author:  Claude (Anthropic) — claude.ai
  * Version: 1.0 — Initial separation from Git-Booklist.html (v2.4).
@@ -30,7 +34,11 @@
  * Version: 1.1 — Updated to accept single field string (radio button selection)
  *                rather than fields object (checkbox selection), matching
  *                Git-Booklist.html v2.5.
- * Created: 2026-05-24
+ * Version: 1.2 — Subjects search changed to case-sensitive. Added sortRecords()
+ *                with single sort field, asc/desc direction, article stripping
+ *                for title sort, localeCompare throughout. Matching
+ *                Git-Booklist.html v2.6.
+ * Created:  2026-05-24
  * Modified: 2026-05-28
  *
  * Planned:
@@ -72,6 +80,11 @@ function sanitizeQuery(query) {
   return query.replace(/[^a-zA-Z0-9.*|^$()[\]\\{}\-_' ]/g, c => '\\' + c);
 }
 
+// Strip leading article for title sort key
+function titleSortKey(title) {
+  return (title || '').replace(/^(a |an |the )/i, '').trim();
+}
+
 // Search bookData.titles against a single field using query string
 // field: one of 'title', 'pubYear', 'dateRead', 'subjects', 'author'
 // Returns array of matching title record objects
@@ -96,11 +109,12 @@ function searchRecords(query, field) {
     return [];
   }
 
-  // Build regex from query
+  // Build regex — subjects are case-sensitive, all others case-insensitive
   let regex;
   try {
     const sanitized = sanitizeQuery(query);
-    regex = new RegExp(sanitized, 'i');  // case-insensitive
+    const flags = field === 'subjects' ? '' : 'i';
+    regex = new RegExp(sanitized, flags);
   } catch (e) {
     console.error('Invalid search pattern:', e);
     return [];
@@ -123,4 +137,50 @@ function searchRecords(query, field) {
         return false;
     }
   });
+}
+
+// Sort a records array by field and direction
+// field: one of 'none', 'title', 'pubYear', 'dateRead', 'subjects'
+// dir:   'asc' or 'desc'
+// Returns a sorted copy — original array is not modified
+function sortRecords(records, field, dir) {
+  if (!records || field === 'none') return records;
+
+  const asc = dir !== 'desc';
+  const sorted = [...records];
+
+  sorted.sort((a, b) => {
+    let valA, valB;
+
+    switch (field) {
+      case 'title':
+        valA = titleSortKey(a.title);
+        valB = titleSortKey(b.title);
+        return asc
+          ? valA.localeCompare(valB)
+          : valB.localeCompare(valA);
+
+      case 'pubYear':
+        valA = a.pubYear || 0;
+        valB = b.pubYear || 0;
+        return asc ? valA - valB : valB - valA;
+
+      case 'dateRead':
+        valA = dateToInt(a.dateRead) || 0;
+        valB = dateToInt(b.dateRead) || 0;
+        return asc ? valA - valB : valB - valA;
+
+      case 'subjects':
+        valA = [a.subject1, a.subject2, a.subject3].filter(Boolean).join(' ');
+        valB = [b.subject1, b.subject2, b.subject3].filter(Boolean).join(' ');
+        return asc
+          ? valA.localeCompare(valB)
+          : valB.localeCompare(valA);
+
+      default:
+        return 0;
+    }
+  });
+
+  return sorted;
 }
