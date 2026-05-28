@@ -27,14 +27,20 @@
                    First 5 / Last 5 diagnostic buttons moved to Data Loading
                    section. Add bl-search.js v1.0. bl-display.js updated to
                    v1.2 with search logic moved to bl-search.js.
+    Version: 2.5 — Add favicon. Merge "Book List" title into Data Loading header
+                   line with elapsed time; section starts collapsed. Search
+                   Controls starts open. Regex explanation replaced with single
+                   short permanent line. Search field selectors changed from
+                   checkboxes to radio buttons, Title default, Author disabled.
     Created:  2026-05-17
-    Modified: 2026-05-24
+    Modified: 2026-05-28
   -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="author" content="Claude (Anthropic)">
-  <meta name="version" content="2.4">
+  <meta name="version" content="2.5">
   <meta name="description" content="Book list search tool">
+  <link rel="icon" type="image/x-icon" href="/bl/favicon.ico">
   <title>Book List</title>
   <style>
     :root {
@@ -59,13 +65,6 @@
       padding: 1rem;
     }
 
-    h1 {
-      font-size: 1.5rem;
-      color: var(--accent);
-      letter-spacing: 0.05em;
-      padding: 0.5rem 0 1rem 0;
-    }
-
     /* ── Sticky section headers ── */
     .section-header {
       position: sticky;
@@ -80,7 +79,7 @@
       justify-content: space-between;
       align-items: center;
       user-select: none;
-      margin-top: 0.75rem;
+      margin-top: 0.5rem;
     }
 
     .section-header h2 {
@@ -88,12 +87,30 @@
       text-transform: uppercase;
       letter-spacing: 0.1em;
       color: var(--accent);
+      white-space: nowrap;
+    }
+
+    .section-header .header-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      overflow: hidden;
+    }
+
+    .section-header .header-meta {
+      font-size: 0.78rem;
+      font-family: var(--mono);
+      color: var(--accent-dim);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .section-toggle {
       font-size: 0.75rem;
       color: var(--accent-dim);
       font-family: var(--mono);
+      flex-shrink: 0;
     }
 
     /* ── Section bodies ── */
@@ -119,13 +136,6 @@
       color: var(--text-dim);
       font-family: var(--mono);
       margin-bottom: 0.4rem;
-    }
-
-    #elapsed {
-      font-size: 0.8rem;
-      color: var(--accent);
-      font-family: var(--mono);
-      margin-bottom: 0.75rem;
     }
 
     /* ── Buttons ── */
@@ -186,32 +196,54 @@
       margin-bottom: 0.5rem;
     }
 
-    .special-chars {
+    .regex-hint {
       font-family: var(--mono);
       font-size: 0.75rem;
       color: var(--text-dim);
       margin-bottom: 0.75rem;
-      line-height: 1.6;
     }
 
-    .special-chars span {
+    .regex-hint span {
       color: var(--accent);
-      font-weight: bold;
     }
 
-    .special-chars .note {
-      font-style: italic;
-      color: var(--text-dim);
-      margin-top: 0.25rem;
-    }
-
-    /* ── Checkboxes ── */
-    .checkbox-row {
+    /* ── Radio buttons ── */
+    .radio-row {
       display: flex;
       flex-wrap: wrap;
       gap: 1rem;
       align-items: center;
       margin-bottom: 0.75rem;
+    }
+
+    .radio-item {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .radio-item input[type="radio"] {
+      width: 1.1rem;
+      height: 1.1rem;
+      cursor: pointer;
+      accent-color: var(--accent);
+    }
+
+    .radio-item.pending {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    /* ── Display Options checkboxes ── */
+    .checkbox-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: center;
     }
 
     .checkbox-item {
@@ -233,11 +265,6 @@
 
     .checkbox-item.last-checked {
       opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    .checkbox-item.pending {
-      opacity: 0.45;
       cursor: not-allowed;
     }
 
@@ -281,24 +308,24 @@
     /* ── Mobile adjustments ── */
     @media (max-width: 600px) {
       body { padding: 0.5rem; }
-      h1 { font-size: 1.2rem; }
       button { padding: 0.65rem 0.8rem; font-size: 1rem; flex: 1; }
-      .checkbox-row { gap: 0.75rem; }
+      .radio-row, .checkbox-row { gap: 0.75rem; }
+      .section-header .header-meta { display: none; }
     }
   </style>
 </head>
 <body>
 
-<h1>Book List</h1>
-
-<!-- ── DATA LOADING ── -->
+<!-- ── DATA LOADING (starts collapsed) ── -->
 <div class="section-header" onclick="toggleSection('data-loading')">
-  <h2>Data Loading</h2>
-  <span class="section-toggle" id="data-loading-toggle">▲ hide</span>
+  <h2>Book List &mdash; Data Loading</h2>
+  <div class="header-right">
+    <span class="header-meta" id="elapsed"></span>
+    <span class="section-toggle" id="data-loading-toggle">▼ show</span>
+  </div>
 </div>
-<div class="section-body" id="data-loading">
+<div class="section-body collapsed" id="data-loading">
   <div id="status">Loading data files…</div>
-  <div id="elapsed"></div>
   <div class="btn-row" style="margin-bottom:0.75rem">
     <button id="reload-btn" disabled onclick="loadData()">↺ Reload Data</button>
   </div>
@@ -318,43 +345,36 @@
   </div>
 </div>
 
-<!-- ── SEARCH CONTROLS ── -->
+<!-- ── SEARCH CONTROLS (starts open) ── -->
 <div class="section-header" onclick="toggleSection('search-controls')">
   <h2>Search Controls</h2>
-  <span class="section-toggle" id="search-controls-toggle">▲ hide</span>
+  <div class="header-right">
+    <span class="section-toggle" id="search-controls-toggle">▲ hide</span>
+  </div>
 </div>
 <div class="section-body" id="search-controls">
   <input type="text" id="search-query" placeholder="Enter search…"
          onkeydown="if(event.key==='Enter') doSearch()">
-  <div class="special-chars">
-    <span>.</span> any char &nbsp;
-    <span>*</span> zero or more &nbsp;
-    <span>.*</span> any sequence &nbsp;
-    <span>|</span> OR &nbsp;
-    <span>^</span> start &nbsp;
-    <span>$</span> end &nbsp;
-    <span>()</span> group &nbsp;
-    <span>[]</span> char class &nbsp;
-    <span>-</span> range in [] &nbsp;
-    <span>\</span> escape &nbsp;
-    <span>..</span> date range
-    <div class="note">Date range example: 202601..20260315 searches Date Read from Jan 2026 to Mar 15 2026</div>
+  <div class="regex-hint">
+    Allowed regex: <span>. * | ^ $ ( ) [ ] -</span> &nbsp;&mdash;&nbsp;
+    use <span>\</span> to escape &nbsp;&mdash;&nbsp;
+    <span>..</span> for date range
   </div>
-  <div class="checkbox-row">
-    <label class="checkbox-item">
-      <input type="checkbox" id="sf-title" checked> Title
+  <div class="radio-row">
+    <label class="radio-item">
+      <input type="radio" name="search-field" id="sf-title" value="title" checked> Title
     </label>
-    <label class="checkbox-item">
-      <input type="checkbox" id="sf-pubyear"> PubYear
+    <label class="radio-item">
+      <input type="radio" name="search-field" id="sf-pubyear" value="pubYear"> PubYear
     </label>
-    <label class="checkbox-item">
-      <input type="checkbox" id="sf-dateread"> Date Read
+    <label class="radio-item">
+      <input type="radio" name="search-field" id="sf-dateread" value="dateRead"> Date Read
     </label>
-    <label class="checkbox-item">
-      <input type="checkbox" id="sf-subjects"> Subjects
+    <label class="radio-item">
+      <input type="radio" name="search-field" id="sf-subjects" value="subjects"> Subjects
     </label>
-    <label class="checkbox-item pending" title="Author search coming soon">
-      <input type="checkbox" id="sf-author" disabled> Author
+    <label class="radio-item pending" title="Author search coming soon">
+      <input type="radio" name="search-field" id="sf-author" value="author" disabled> Author
     </label>
   </div>
   <div class="btn-row">
@@ -365,7 +385,9 @@
 <!-- ── DISPLAY OPTIONS ── -->
 <div class="section-header" onclick="toggleSection('display-options')">
   <h2>Display Options</h2>
-  <span class="section-toggle" id="display-options-toggle">▲ hide</span>
+  <div class="header-right">
+    <span class="section-toggle" id="display-options-toggle">▲ hide</span>
+  </div>
 </div>
 <div class="section-body" id="display-options">
   <div class="checkbox-row">
@@ -390,7 +412,9 @@
 <!-- ── RESULTS ── -->
 <div class="section-header" onclick="toggleSection('results-section')">
   <h2>Results</h2>
-  <span class="section-toggle" id="results-section-toggle">▲ hide</span>
+  <div class="header-right">
+    <span class="section-toggle" id="results-section-toggle">▲ hide</span>
+  </div>
 </div>
 <div class="section-body" id="results-section">
   <div id="results">
@@ -436,40 +460,30 @@
     };
   }
 
-  // Return current search field selections
-  function getSearchFields() {
-    return {
-      title:    document.getElementById('sf-title').checked,
-      pubYear:  document.getElementById('sf-pubyear').checked,
-      dateRead: document.getElementById('sf-dateread').checked,
-      subjects: document.getElementById('sf-subjects').checked,
-      author:   false  // not yet implemented
-    };
+  // Return currently selected search field
+  function getSearchField() {
+    const selected = document.querySelector('input[name="search-field"]:checked');
+    return selected ? selected.value : 'title';
   }
 
   // Execute search
   function doSearch() {
     const query = document.getElementById('search-query').value;
     if (!query.trim()) return;
-    const fields  = getSearchFields();
-    const results = searchRecords(query, fields);
+    const field   = getSearchField();
+    const results = searchRecords(query, field);
     displayResults(results, `Search: ${query}`);
-    // Auto-expand results section if collapsed
     const body = document.getElementById('results-section');
     if (body.classList.contains('collapsed')) toggleSection('results-section');
   }
 
-  // Update elapsed time display
+  // Update elapsed time in Data Loading header
   function updateElapsed() {
     const el = document.getElementById('elapsed');
     if (!bookData.loadedAt) { el.textContent = ''; return; }
     const days = (Date.now() - bookData.loadedAt.getTime()) / (1000 * 60 * 60 * 24);
-    el.textContent = `Data loaded ${days.toFixed(2)} days ago`;
+    el.textContent = `(Loaded ${days.toFixed(2)} days ago)`;
   }
-
-  // Enable search button along with data buttons
-  const _origSetButtonsEnabled = typeof setButtonsEnabled === 'function'
-    ? setButtonsEnabled : null;
 
   function setButtonsEnabled(enabled) {
     ['titles-first', 'titles-last', 'authors-first', 'authors-last',
