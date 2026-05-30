@@ -8,9 +8,10 @@
  *
  * Exports (globals):
  *   bookData        — object with .titles and .authors arrays (parsed objects),
- *                     .loadedAt Date, null until loaded
+ *                     .authorById lookup map, .loadedAt Date, null until loaded
  *   loadData()      — async function: fetches both files, parses records,
- *                     updates bookData, sets status display, enables buttons
+ *                     builds authorById lookup map, updates bookData,
+ *                     sets status display, enables buttons
  *
  * Titles record layout (70 chars):
  *   0-39   title         40 chars
@@ -43,7 +44,10 @@
  *                30-99 => 1930-1999); store as JavaScript Date, null if missing.
  *                elapsedDays() moved to main HTML file; data age display now
  *                refreshed via setInterval rather than only at load time.
- * Created: 2026-05-20
+ * Version: 1.5 — Build authorById lookup map after loading authors, for
+ *                efficient author search in bl-search.js v2.0.
+ * Created:  2026-05-20
+ * Modified: 2026-05-30
  */
 
 const URLS = {
@@ -52,9 +56,10 @@ const URLS = {
 };
 
 const bookData = {
-  titles:   null,   // array of parsed title objects
-  authors:  null,   // array of parsed author objects
-  loadedAt: null    // Date when last loaded
+  titles:     null,   // array of parsed title objects
+  authors:    null,   // array of parsed author objects
+  authorById: null,   // map from author id -> author object for fast lookup
+  loadedAt:   null    // Date when last loaded
 };
 
 function setStatus(msg) {
@@ -133,6 +138,10 @@ async function loadData() {
     bookData.titles   = rawTitles.map(parseTitleRecord);
     bookData.authors  = rawAuthors.map(parseAuthorRecord);
     bookData.loadedAt = new Date();
+
+    // Build author lookup map for fast ID -> record access
+    bookData.authorById = {};
+    bookData.authors.forEach(a => { bookData.authorById[a.id] = a; });
 
     setStatus(
       `Loaded ${bookData.loadedAt.toLocaleTimeString()} — ` +
