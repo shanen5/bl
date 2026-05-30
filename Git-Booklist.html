@@ -37,13 +37,17 @@
                    radio buttons for sort field (none/Title/PubYear/Date Read/
                    Subjects), Asc/Desc toggle, default none/asc. Sort applied
                    after search in doSearch(). bl-search.js updated to v1.2.
+    Version: 2.7 — Author search and sort enabled. Author radio buttons active
+                   in Search Controls and Display Options sort. Auto-select
+                   display field checkbox when sort field chosen.
+                   bl-load-data.js updated to v1.5, bl-search.js to v2.0.
     Created:  2026-05-17
-    Modified: 2026-05-28
+    Modified: 2026-05-30
   -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="author" content="Claude (Anthropic)">
-  <meta name="version" content="2.6">
+  <meta name="version" content="2.7">
   <meta name="description" content="Book list search tool">
   <link rel="icon" type="image/x-icon" href="/bl/favicon.ico">
   <title>Book List</title>
@@ -377,8 +381,8 @@
     <label class="radio-item">
       <input type="radio" name="search-field" id="sf-subjects" value="subjects"> Subjects
     </label>
-    <label class="radio-item pending" title="Author search coming soon">
-      <input type="radio" name="search-field" id="sf-author" value="author" disabled> Author
+    <label class="radio-item">
+      <input type="radio" name="search-field" id="sf-author" value="author"> Author
     </label>
   </div>
   <div class="btn-row">
@@ -418,22 +422,22 @@
     <label>Sort by</label>
     <div class="radio-row">
       <label class="radio-item">
-        <input type="radio" name="sort-field" value="none" checked> None
+        <input type="radio" name="sort-field" value="none" checked onchange="onSortFieldChange(this)"> None
       </label>
       <label class="radio-item">
-        <input type="radio" name="sort-field" value="title"> Title
+        <input type="radio" name="sort-field" value="title" onchange="onSortFieldChange(this)"> Title
       </label>
       <label class="radio-item">
-        <input type="radio" name="sort-field" value="pubYear"> PubYear
+        <input type="radio" name="sort-field" value="pubYear" onchange="onSortFieldChange(this)"> PubYear
       </label>
       <label class="radio-item">
-        <input type="radio" name="sort-field" value="dateRead"> Date Read
+        <input type="radio" name="sort-field" value="dateRead" onchange="onSortFieldChange(this)"> Date Read
       </label>
       <label class="radio-item">
-        <input type="radio" name="sort-field" value="subjects"> Subjects
+        <input type="radio" name="sort-field" value="subjects" onchange="onSortFieldChange(this)"> Subjects
       </label>
-      <label class="radio-item pending" title="Author sort coming soon">
-        <input type="radio" name="sort-field" value="author" disabled> Author
+      <label class="radio-item">
+        <input type="radio" name="sort-field" value="author" onchange="onSortFieldChange(this)"> Author
       </label>
     </div>
     <div class="sort-dir">
@@ -461,8 +465,8 @@
   </div>
 </div>
 
-<script src="bl-load-data.js?v=1.4"></script>
-<script src="bl-search.js?v=1.2"></script>
+<script src="bl-load-data.js?v=1.5"></script>
+<script src="bl-search.js?v=2.0"></script>
 <script src="bl-display.js?v=1.2"></script>
 <script>
   function toggleSection(id) {
@@ -513,6 +517,26 @@
       field: field ? field.value : 'none',
       dir:   dir   ? dir.value   : 'asc'
     };
+  }
+
+  // Map sort field values to display option checkbox IDs
+  const SORT_TO_DISPLAY = {
+    title:    'opt-title',
+    pubYear:  'opt-pubyear',
+    dateRead: 'opt-dateread',
+    subjects: 'opt-subjects',
+    authors:  'opt-authors'
+  };
+
+  // Auto-select display checkbox when sort field is chosen
+  function onSortFieldChange(radio) {
+    const checkId = SORT_TO_DISPLAY[radio.value];
+    if (!checkId) return;  // 'none' has no mapping
+    const cb = document.getElementById(checkId);
+    if (cb && !cb.checked) {
+      cb.checked = true;
+      guardCheckboxes();
+    }
   }
 
   // Execute search and sort
