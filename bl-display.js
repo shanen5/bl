@@ -37,8 +37,11 @@
  *                Count (total only). Format selected via getResultFormat()
  *                in main HTML. Table format always resolves author names
  *                regardless of Authors display checkbox.
+ * Version: 1.4 — Added Wide HTML (full borders) and Tight HTML (no borders)
+ *                table formats. All three HTML table formats resolve author
+ *                names. CSS class applied to table element controls styling.
  * Created:  2026-05-20
- * Modified: 2026-05-30
+ * Modified: 2026-05-31
  */
 
 function escapeHtml(str) {
@@ -98,8 +101,8 @@ function formatDense(records, opts) {
   return `<pre>${lines.join('\n')}</pre>`;
 }
 
-// ── Table format ──────────────────────────────────────────────────────────────
-function formatTable(records, opts) {
+// ── Table format (shared by Table, Wide HTML, Tight HTML) ────────────────────
+function formatTable(records, opts, tableClass) {
   const cols = [];
   if (opts.title)    cols.push({ key: 'title',    label: 'Title' });
   if (opts.pubYear)  cols.push({ key: 'pubYear',  label: 'Year' });
@@ -123,9 +126,10 @@ function formatTable(records, opts) {
     return `<tr>${cells.join('')}</tr>`;
   });
 
+  const cls = tableClass ? `result-table ${tableClass}` : 'result-table';
   return `
     <div style="overflow-x:auto">
-      <table class="result-table">
+      <table class="${cls}">
         <thead><tr>${header}</tr></thead>
         <tbody>${rows.join('')}</tbody>
       </table>
@@ -203,9 +207,11 @@ function displayResults(records, label) {
 
   let body = '';
   switch (format) {
-    case 'table': body = formatTable(records, opts); break;
-    case 'csv':   body = formatCSV(records, opts);   break;
-    default:      body = formatDense(records, opts);  break;
+    case 'table': body = formatTable(records, opts, '');      break;
+    case 'wide':  body = formatTable(records, opts, 'wide');  break;
+    case 'tight': body = formatTable(records, opts, 'tight'); break;
+    case 'csv':   body = formatCSV(records, opts);            break;
+    default:      body = formatDense(records, opts);          break;
   }
 
   document.getElementById('results').innerHTML = `
