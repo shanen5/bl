@@ -44,14 +44,17 @@
     Version: 2.8 — Add Result Format radio buttons at bottom of Display Options:
                    Dense (default), Table (with resolved author names), CSV,
                    Count. Add table CSS. bl-display.js updated to v1.3.
+    Version: 2.9 — Add Wide HTML and Tight HTML table formats. Add clipboard
+                   buttons: Copy Results and Copy URL (encodes full search and
+                   display state, sections collapsed). URL-based state restore
+                   on page load. bl-display.js updated to v1.4.
     Created:  2026-05-17
-    Modified: 2026-05-30
-    (second edit)
+    Modified: 2026-05-31
   -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="author" content="Claude (Anthropic)">
-  <meta name="version" content="2.8">
+  <meta name="version" content="2.9">
   <meta name="description" content="Book list search tool">
   <link rel="icon" type="image/x-icon" href="/bl/favicon.ico">
   <title>Book List</title>
@@ -342,6 +345,23 @@
       background: var(--surface);
     }
 
+    /* Wide HTML — full borders */
+    table.result-table.wide th,
+    table.result-table.wide td {
+      border: 1px solid var(--border);
+    }
+
+    /* Tight HTML — no borders, tighter padding */
+    table.result-table.tight th,
+    table.result-table.tight td {
+      border: none;
+      padding: 0.2rem 0.5rem;
+    }
+
+    table.result-table.tight tr:nth-child(even) td {
+      background: transparent;
+    }
+
     /* ── Mobile adjustments ── */
     @media (max-width: 600px) {
       body { padding: 0.5rem; }
@@ -490,12 +510,26 @@
         <input type="radio" name="result-format" value="table"> Table
       </label>
       <label class="radio-item">
+        <input type="radio" name="result-format" value="wide"> Wide HTML
+      </label>
+      <label class="radio-item">
+        <input type="radio" name="result-format" value="tight"> Tight HTML
+      </label>
+      <label class="radio-item">
         <input type="radio" name="result-format" value="csv"> CSV
       </label>
       <label class="radio-item">
         <input type="radio" name="result-format" value="count"> Count
       </label>
     </div>
+  </div>
+  <div class="control-group" style="margin-top:0.75rem">
+    <label>Clipboard</label>
+    <div class="btn-row">
+      <button id="copy-results-btn" onclick="copyResults()">Copy Results</button>
+      <button id="copy-url-btn" onclick="copySearchUrl()">Copy URL</button>
+    </div>
+    <div id="copy-status" style="font-size:0.75rem;font-family:var(--mono);color:var(--accent-dim);margin-top:0.4rem;min-height:1.2em;"></div>
   </div>
 </div>
 
@@ -514,7 +548,7 @@
 
 <script src="bl-load-data.js?v=1.5"></script>
 <script src="bl-search.js?v=2.0"></script>
-<script src="bl-display.js?v=1.3"></script>
+<script src="bl-display.js?v=1.4"></script>
 <script>
   function toggleSection(id) {
     const body   = document.getElementById(id);
@@ -620,9 +654,120 @@
         const el = document.getElementById(id);
         if (el) el.disabled = !enabled;
       });
+    // If data just finished loading and URL has a query, run it automatically
+    if (enabled && new URLSearchParams(location.search).has('q')) {
+      setTimeout(doSearch, 50);
+    }
+  }
+
+  // Build URL encoding current search and display state
+  function buildSearchUrl() {
+    const field  = getSearchField();
+    const query  = document.getElementById('search-query').value;
+    const sort   = getSortOptions();
+    const opts   = getDisplayOptions();
+    const fmt    = getResultFormat();
+
+    const disp = Object.entries(opts)
+      .filter(([,v]) => v).map(([k]) => k).join(',');
+
+    const params = new URLSearchParams({
+      field, q: query,
+      sort: sort.field, dir: sort.dir,
+      disp, fmt,
+      collapsed: '1'   // top 3 sections hidden when URL is used
+    });
+    return `${location.origin}${location.pathname}?${params.toString()}`;
+  }
+
+  // Restore state from URL parameters on page load
+  function restoreFromUrl() {
+    const params = new URLSearchParams(location.search);
+    if (!params.has('q')) return;  // nothing to restore
+
+    // Search field
+    const field = params.get('field');
+    if (field) {
+      const r = document.querySelector(`input[name="search-field"][value="${field}"]`);
+      if (r) r.checked = true;
+    }
+
+    // Query
+    const q = params.get('q');
+    if (q) document.getElementById('search-query').value = q;
+
+    // Sort
+    const sortField = params.get('sort');
+    if (sortField) {
+      const r = document.querySelector(`input[name="sort-field"][value="${sortField}"]`);
+      if (r) r.checked = true;
+    }
+    const dir = params.get('dir');
+    if (dir) {
+      const r = document.querySelector(`input[name="sort-dir"][value="${dir}"]`);
+      if (r) r.checked = true;
+    }
+
+    // Display fields
+    const disp = (params.get('disp') || '').split(',');
+    ['title','pubYear','dateRead','authors','subjects'].forEach(f => {
+      const cb = document.getElementById('opt-' + f.toLowerCase());
+      if (cb) cb.checked = disp.includes(f);
+    });
+    guardCheckboxes();
+
+    // Format
+    const fmt = params.get('fmt');
+    if (fmt) {
+      const r = document.querySelector(`input[name="result-format"][value="${fmt}"]`);
+      if (r) r.checked = true;
+    }
+
+    // Collapse top 3 sections if requested
+    if (params.get('collapsed') === '1') {
+      ['data-loading', 'search-controls', 'display-options'].forEach(id => {
+        const body = document.getElementById(id);
+        const toggle = document.getElementById(id + '-toggle');
+        if (body && !body.classList.contains('collapsed')) {
+          body.classList.add('collapsed');
+          if (toggle) toggle.textContent = '▼ show';
+        }
+      });
+    }
+  }
+
+  // Copy results panel text to clipboard
+  function copyResults() {
+    const el = document.getElementById('results');
+    const text = el ? el.innerText : '';
+    navigator.clipboard.writeText(text).then(() => {
+      showCopyStatus('Results copied to clipboard');
+    }).catch(() => {
+      showCopyStatus('Copy failed — try selecting and copying manually');
+    });
+  }
+
+  // Copy search URL to clipboard
+  function copySearchUrl() {
+    const url = buildSearchUrl();
+    navigator.clipboard.writeText(url).then(() => {
+      showCopyStatus('URL copied to clipboard');
+    }).catch(() => {
+      showCopyStatus('Copy failed');
+    });
+  }
+
+  function showCopyStatus(msg) {
+    const el = document.getElementById('copy-status');
+    if (!el) return;
+    el.textContent = msg;
+    setTimeout(() => { el.textContent = ''; }, 3000);
   }
 
   setInterval(updateElapsed, 60000);
+
+  // Restore URL state before loading data, then run search if query present
+  restoreFromUrl();
   loadData();
 </script>
 
