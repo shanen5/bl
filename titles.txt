@@ -5469,7 +5469,7 @@ Quantico                                2008260503 753        SFRe
 Chaos Monkeys:Obscene Fortune and Random20182605125522        IHPsCS
 Stolen Focus:Why You Can't Pay Attention20232605164948        PsSoIH
 Mindf*ck:Cambridge Analytica and the Plo20192605205523        IHPSCS
-The Funny Book: Good Joes and Puns      20182605215524        HuMe  
+The Funny Book: Good Jokes and Puns     20182605215524        HuMe  
 The Magic of Japan:Secret Places and Lif202126052332515525    JaIH  
 TikTok Boom:The Inside Story of the Worl20232605295526        CSIH  
 Dan Leno and the Limehouse Golem        19952605305527        Fa    
@@ -5477,4 +5477,5 @@ The Best American SciFi and Fantasy 20222022260531552855295530FaSF
 Maneki Neko: The Japanese Secret to Good2023260601553132514769JaFaRe
 Another Kyoto                           201626060332925533    JaHiRe
 The Joke (Definitive Version)(Zert)     200126060910185534    HFHu  
+The Scarlet Pimpernel                   199926061055355536    HFRo  
 
