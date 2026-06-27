@@ -78,7 +78,7 @@ Donald                Harden        76
 S.          H.        Butcher       78
 Andrew                Lang          79
 Carl                  Kidwell       80
-Samuel      Langhorne Clemens       81
+Samuel      Langlorne Clemens       81
 Mark                  Twain         82
 John                  Read          83
 Robert                Bendiner      84
@@ -5537,4 +5537,5 @@ Emma        Magdelena Orczy       5536
 John        L.        Casti       5537
 Dennis                Washburn    5538
 Satoko                Tsushima    5539
+Holly                 Jackson         
 
