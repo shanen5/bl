@@ -15,7 +15,8 @@
  *   ()         grouping
  *   []         character class, - for ranges e.g. [a-z]
  *   \          escape next character (e.g. \. for literal dot)
- *   ..         date range e.g. 202601..20260315 (YYYYMM or YYYYMMDD)
+ *   ..         date range e.g. 1971..1981 (YYYY), 202601..202603 (YYYYMM),
+ *              or 20260101..20260315 (YYYYMMDD)
  *
  * Exports (globals):
  *   searchRecords(query, field)      — parses query, searches bookData.titles
@@ -43,14 +44,20 @@
  *                author IDs on a title record, using authorById lookup map from
  *                bl-load-data.js v1.5. Author sort enabled, sorting by lastName
  *                then firstName as tiebreaker. Author search is case-insensitive.
+ * Version: 2.1 — Fix date range search for 4-digit year-only inputs (e.g.
+ *                1971..1981). parseDateBound now accepts YYYY (4), YYYYMM (6),
+ *                or YYYYMMDD (8) and pads to low/high bound as appropriate.
+ *                parseDateRange regex updated to accept 4-8 digits each side.
  * Created:  2026-05-24
- * Modified: 2026-05-30
+ * Modified: 2026-07-01
  */
 
-// Parse a date string in YYYYMM or YYYYMMDD format to a comparable integer
-function parseDateBound(s) {
+// Parse a date string in YYYY, YYYYMM, or YYYYMMDD format to a comparable integer
+// isHigh: if true, pad to end of period; if false, pad to start of period
+function parseDateBound(s, isHigh) {
   s = s.trim();
-  if (s.length === 6) return parseInt(s + '00', 10);
+  if (s.length === 4) return parseInt(s + (isHigh ? '1231' : '0101'), 10);
+  if (s.length === 6) return parseInt(s + (isHigh ? '31'   : '01'),   10);
   if (s.length === 8) return parseInt(s, 10);
   return null;
 }
@@ -66,15 +73,12 @@ function dateToInt(d) {
 
 // Detect and parse a .. date range query, returns {low, high} or null
 function parseDateRange(query) {
-  const match = query.match(/^(\d{6,8})\.\.(\d{6,8})$/);
+  const match = query.match(/^(\d{4,8})\.\.(\d{4,8})$/);
   if (!match) return null;
-  const low  = parseDateBound(match[1]);
-  const high = parseDateBound(match[2]);
+  const low  = parseDateBound(match[1], false);
+  const high = parseDateBound(match[2], true);
   if (!low || !high) return null;
-  const highAdj = String(match[2]).length === 6
-    ? parseInt(match[2] + '99', 10)
-    : high;
-  return { low, high: highAdj };
+  return { low, high };
 }
 
 // Sanitize query: escape characters not in the allowed regex subset
