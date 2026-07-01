@@ -46,8 +46,12 @@
  *                refreshed via setInterval rather than only at load time.
  * Version: 1.5 — Build authorById lookup map after loading authors, for
  *                efficient author search in bl-search.js v2.0.
+ * Version: 1.6 — Status message now shows both date and time of load, not
+ *                time only. setButtonsEnabled() removed (duplicate of version
+ *                in Git-Booklist.html which also covers search-btn); loadData()
+ *                now calls the main HTML version directly.
  * Created:  2026-05-20
- * Modified: 2026-05-30
+ * Modified: 2026-07-01
  */
 
 const URLS = {
@@ -66,12 +70,8 @@ function setStatus(msg) {
   document.getElementById('status').textContent = msg;
 }
 
-function setButtonsEnabled(enabled) {
-  ['titles-first', 'titles-last', 'authors-first', 'authors-last', 'reload-btn']
-    .forEach(id => document.getElementById(id).disabled = !enabled);
-}
-
 // Expand a 2-digit year string to a 4-digit integer
+// Cutoff: 00-29 => 2000-2029, 30-99 => 1930-1999
 function expandYear(yy) {
   const n = parseInt(yy, 10);
   if (isNaN(n)) return null;
@@ -144,7 +144,7 @@ async function loadData() {
     bookData.authors.forEach(a => { bookData.authorById[a.id] = a; });
 
     setStatus(
-      `Loaded ${bookData.loadedAt.toLocaleTimeString()} — ` +
+      `Loaded ${bookData.loadedAt.toLocaleDateString()} ${bookData.loadedAt.toLocaleTimeString()} — ` +
       `titles: ${bookData.titles.length} records, ` +
       `authors: ${bookData.authors.length} records`
     );
