@@ -5,7 +5,7 @@
  * Reads from the global `bookData` object populated by bl-load-data.js.
  * Returns filtered and sorted arrays of records for rendering by bl-display.js.
  *
- * Supported query syntax:
+ * Supported query syntax (when regex enabled):
  *   .          any single character
  *   *          zero or more of preceding character
  *   .*         any sequence of characters
@@ -16,10 +16,11 @@
  *   []         character class, - for ranges e.g. [a-z]
  *   \          escape next character (e.g. \. for literal dot)
  *   ..         date range e.g. 1971..1981 (YYYY), 202601..202603 (YYYYMM),
- *              or 20260101..20260315 (YYYYMMDD)
+ *              or 20260101..20260315 (YYYYMMDD) — always active regardless
+ *              of regex setting
  *
  * Exports (globals):
- *   searchRecords(query, field)      — parses query, searches bookData.titles
+ *   searchRecords(query, field, useRegex) — parses query, searches bookData.titles
  *                                      against specified field string, returns
  *                                      matching records array. Returns [] if
  *                                      no match or error.
@@ -31,25 +32,17 @@
  *
  * Author:  Claude (Anthropic) — claude.ai
  * Version: 1.0 — Initial separation from Git-Booklist.html (v2.4).
- *                Supports regex subset and .. date range on title field.
- *                Author search stubbed out pending v2.0 implementation.
- * Version: 1.1 — Updated to accept single field string (radio button selection)
- *                rather than fields object (checkbox selection), matching
- *                Git-Booklist.html v2.5.
- * Version: 1.2 — Subjects search changed to case-sensitive. Added sortRecords()
- *                with single sort field, asc/desc direction, article stripping
- *                for title sort, localeCompare throughout.
- * Version: 2.0 — Author search implemented. Regex matched against concatenated
- *                firstName + middleName + lastName for each of up to three
- *                author IDs on a title record, using authorById lookup map from
- *                bl-load-data.js v1.5. Author sort enabled, sorting by lastName
- *                then firstName as tiebreaker. Author search is case-insensitive.
+ * Version: 1.1 — Updated to accept single field string (radio button selection).
+ * Version: 1.2 — Subjects search changed to case-sensitive. Added sortRecords().
+ * Version: 2.0 — Author search implemented. Author sort enabled.
  * Version: 2.1 — Fix date range search for 4-digit year-only inputs (e.g.
- *                1971..1981). parseDateBound now accepts YYYY (4), YYYYMM (6),
- *                or YYYYMMDD (8) and pads to low/high bound as appropriate.
- *                parseDateRange regex updated to accept 4-8 digits each side.
+ *                1971..1981). parseDateBound accepts YYYY, YYYYMM, or YYYYMMDD.
+ * Version: 2.2 — Regex now opt-in via useRegex parameter. When false, query is
+ *                treated as a plain literal string (all special characters escaped
+ *                automatically). Date range syntax (..) always active regardless
+ *                of regex setting.
  * Created:  2026-05-24
- * Modified: 2026-07-01
+ * Modified: 2026-07-02
  */
 
 // Parse a date string in YYYY, YYYYMM, or YYYYMMDD format to a comparable integer
@@ -81,7 +74,12 @@ function parseDateRange(query) {
   return { low, high };
 }
 
-// Sanitize query: escape characters not in the allowed regex subset
+// Escape all regex special characters for literal string search
+function escapeLiteral(query) {
+  return query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Sanitize query for regex use: escape characters not in the allowed subset
 function sanitizeQuery(query) {
   return query.replace(/[^a-zA-Z0-9.*|^$()[\]\\{}\-_' ]/g, c => '\\' + c);
 }
@@ -108,13 +106,20 @@ function authorSortKey(rec) {
   return `${a.lastName || ''} ${a.firstName || ''}`.trim();
 }
 
+// Build a RegExp from the query, respecting useRegex flag
+function buildRegex(query, flags, useRegex) {
+  const pattern = useRegex ? sanitizeQuery(query) : escapeLiteral(query);
+  return new RegExp(pattern, flags);
+}
+
 // Search bookData.titles against a single field using query string
-// field: one of 'title', 'pubYear', 'dateRead', 'subjects', 'author'
+// field:    one of 'title', 'pubYear', 'dateRead', 'subjects', 'author'
+// useRegex: if true, query is treated as regex; if false, plain literal
 // Returns array of matching title record objects
-function searchRecords(query, field) {
+function searchRecords(query, field, useRegex) {
   if (!bookData.titles || !query.trim()) return [];
 
-  // Date range search applies only to dateRead field
+  // Date range search applies only to dateRead field, always active
   if (field === 'dateRead') {
     const dateRange = parseDateRange(query.trim());
     if (dateRange) {
@@ -126,13 +131,12 @@ function searchRecords(query, field) {
     }
   }
 
-  // Author search — regex matched against all name fields of each linked author
+  // Author search
   if (field === 'author') {
     if (!bookData.authorById) return [];
     let regex;
     try {
-      const sanitized = sanitizeQuery(query);
-      regex = new RegExp(sanitized, 'i');  // author search is case-insensitive
+      regex = buildRegex(query, 'i', useRegex);
     } catch (e) {
       console.error('Invalid search pattern:', e);
       return [];
@@ -149,9 +153,8 @@ function searchRecords(query, field) {
   // Build regex — subjects are case-sensitive, all others case-insensitive
   let regex;
   try {
-    const sanitized = sanitizeQuery(query);
     const flags = field === 'subjects' ? '' : 'i';
-    regex = new RegExp(sanitized, flags);
+    regex = buildRegex(query, flags, useRegex);
   } catch (e) {
     console.error('Invalid search pattern:', e);
     return [];
