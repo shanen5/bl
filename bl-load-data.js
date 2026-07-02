@@ -32,26 +32,17 @@
  *
  * Author:  Claude (Anthropic) — claude.ai
  * Version: 1.0 — Initial separation from Git-Booklist.html (v2)
- * Version: 1.1 — Fix blank record at end of file caused by DOS \r\n line endings
- *                from dBase II output; trim each line before filtering.
- * Version: 1.2 — Strip Ctrl-Z (ASCII 26, \x1a) DOS end-of-file marker before
- *                splitting, as it survives the dBase II /A copy and causes a
- *                phantom blank record at the end of each file.
- * Version: 1.3 — Call updateElapsed() after successful load to update the
- *                data age display in the Data Loading section.
+ * Version: 1.1 — Fix blank record at end of file caused by DOS \r\n line endings.
+ * Version: 1.2 — Strip Ctrl-Z (ASCII 26, \x1a) DOS end-of-file marker.
+ * Version: 1.3 — Call updateElapsed() after successful load.
  * Version: 1.4 — Parse raw lines into structured objects at load time.
- *                Expand 2-digit years in dateRead to 4 digits (00-29 => 2000-2029,
- *                30-99 => 1930-1999); store as JavaScript Date, null if missing.
- *                elapsedDays() moved to main HTML file; data age display now
- *                refreshed via setInterval rather than only at load time.
- * Version: 1.5 — Build authorById lookup map after loading authors, for
- *                efficient author search in bl-search.js v2.0.
- * Version: 1.6 — Status message now shows both date and time of load, not
- *                time only. setButtonsEnabled() removed (duplicate of version
- *                in Git-Booklist.html which also covers search-btn); loadData()
- *                now calls the main HTML version directly.
+ *                Expand 2-digit years: 00-29 => 2000-2029, 30-99 => 1930-1999.
+ * Version: 1.5 — Build authorById lookup map for efficient author search.
+ * Version: 1.6 — Status message shows ISO date (YYYY-MM-DD) and time of load.
+ *                Removed duplicate setButtonsEnabled() — main HTML version
+ *                is authoritative and also covers search-btn.
  * Created:  2026-05-20
- * Modified: 2026-07-01
+ * Modified: 2026-07-02
  */
 
 const URLS = {
@@ -60,14 +51,22 @@ const URLS = {
 };
 
 const bookData = {
-  titles:     null,   // array of parsed title objects
-  authors:    null,   // array of parsed author objects
-  authorById: null,   // map from author id -> author object for fast lookup
-  loadedAt:   null    // Date when last loaded
+  titles:     null,
+  authors:    null,
+  authorById: null,
+  loadedAt:   null
 };
 
 function setStatus(msg) {
   document.getElementById('status').textContent = msg;
+}
+
+// Format a Date as ISO YYYY-MM-DD
+function isoDate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 // Expand a 2-digit year string to a 4-digit integer
@@ -88,7 +87,7 @@ function parseDateRead(raw) {
   const month = parseInt(mm, 10);
   const day   = parseInt(dd, 10);
   if (!year || !month || !day) return null;
-  return new Date(year, month - 1, day);  // month is 0-based in JS Date
+  return new Date(year, month - 1, day);
 }
 
 // Parse one raw titles line into a structured object
@@ -139,12 +138,11 @@ async function loadData() {
     bookData.authors  = rawAuthors.map(parseAuthorRecord);
     bookData.loadedAt = new Date();
 
-    // Build author lookup map for fast ID -> record access
     bookData.authorById = {};
     bookData.authors.forEach(a => { bookData.authorById[a.id] = a; });
 
     setStatus(
-      `Loaded ${bookData.loadedAt.toLocaleDateString()} ${bookData.loadedAt.toLocaleTimeString()} — ` +
+      `Loaded ${isoDate(bookData.loadedAt)} ${bookData.loadedAt.toLocaleTimeString()} — ` +
       `titles: ${bookData.titles.length} records, ` +
       `authors: ${bookData.authors.length} records`
     );
