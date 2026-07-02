@@ -4,57 +4,18 @@
   <!--
     Git-Booklist.html
     Author:  Claude (Anthropic) — claude.ai
-    Version: 2.0 — Pale blue/black theme; Reload button in controls strip;
-                   elapsed-time load indicator; blank-line bug fix;
-                   split data loading into bl-load-data.js and
-                   display into bl-display.js.
-    Version: 2.1 — Three labeled collapsible sticky sections: Data Loading,
-                   Search Controls, Results. Mobile-friendly sizing.
-                   Elapsed time display in Data Loading section.
-    Version: 2.2 — Fix data age display: fractional days format (e.g. 2.25 days),
-                   label changed to "Data loaded X days ago", refreshes every
-                   60 seconds via setInterval. Update script tag to bl-load-data.js
-                   v1.4 which parses records into structured objects and converts
-                   dateRead to JavaScript Date.
-    Version: 2.3 — Add Display Options collapsible section between Search Controls
-                   and Results. Checkboxes for Title, PubYear, Date Read, Authors,
-                   Subjects with Title and Date Read checked by default. Last
-                   checked box is prevented from being unchecked.
-    Version: 2.4 — Add Search Controls section with query input field, special
-                   characters reference list with .. date range note, field
-                   checkboxes (Title checked by default, Author greyed out
-                   pending implementation), Search button, Enter key support.
-                   First 5 / Last 5 diagnostic buttons moved to Data Loading
-                   section. Add bl-search.js v1.0. bl-display.js updated to
-                   v1.2 with search logic moved to bl-search.js.
-    Version: 2.5 — Add favicon. Merge "Book List" title into Data Loading header
-                   line with elapsed time; section starts collapsed. Search
-                   Controls starts open. Regex explanation replaced with single
-                   short permanent line. Search field selectors changed from
-                   checkboxes to radio buttons, Title default, Author disabled.
-    Version: 2.6 — Updated regex hint text. Results section always open with no
-                   max-height limit. Sort options added to Display Options:
-                   radio buttons for sort field (none/Title/PubYear/Date Read/
-                   Subjects), Asc/Desc toggle, default none/asc. Sort applied
-                   after search in doSearch(). bl-search.js updated to v1.2.
-    Version: 2.7 — Author search and sort enabled. Author radio buttons active
-                   in Search Controls and Display Options sort. Auto-select
-                   display field checkbox when sort field chosen.
-                   bl-load-data.js updated to v1.5, bl-search.js to v2.0.
-    Version: 2.8 — Add Result Format radio buttons at bottom of Display Options:
-                   Dense (default), Table (with resolved author names), CSV,
-                   Count. Add table CSS. bl-display.js updated to v1.3.
-    Version: 2.9 — Add Wide HTML and Tight HTML table formats. Add clipboard
-                   buttons: Copy Results and Copy URL (encodes full search and
-                   display state, sections collapsed). URL-based state restore
-                   on page load. bl-display.js updated to v1.4.
+    Version: 3.0 — Search for / Where to search? labels added to Search Controls.
+                   Opt-in regex checkbox with link to MDN regex reference.
+                   maxlength=200 on search input.
+                   Search/Refresh Results button added to Display Options.
+                   bl-search.js updated to v2.2, bl-load-data.js to v1.6.
     Created:  2026-05-17
-    Modified: 2026-05-31
+    Modified: 2026-07-02
   -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="author" content="Claude (Anthropic)">
-  <meta name="version" content="2.9">
+  <meta name="version" content="3.0">
   <meta name="description" content="Book list search tool">
   <link rel="icon" type="image/x-icon" href="/bl/favicon.ico">
   <title>Book List</title>
@@ -81,7 +42,6 @@
       padding: 1rem;
     }
 
-    /* ── Sticky section headers ── */
     .section-header {
       position: sticky;
       top: 0;
@@ -129,7 +89,6 @@
       flex-shrink: 0;
     }
 
-    /* ── Section bodies ── */
     .section-body {
       background: var(--bg);
       border: 1px solid var(--border);
@@ -146,13 +105,11 @@
       padding-bottom: 0;
     }
 
-    /* Results section — always open, no height limit */
     #results-section {
       max-height: none;
       overflow: visible;
     }
 
-    /* ── Data Loading section ── */
     #status {
       font-size: 0.8rem;
       color: var(--text-dim);
@@ -160,7 +117,6 @@
       margin-bottom: 0.4rem;
     }
 
-    /* ── Buttons ── */
     .btn-row {
       display: flex;
       flex-wrap: wrap;
@@ -189,7 +145,6 @@
       cursor: not-allowed;
     }
 
-    /* ── Control groups ── */
     .control-group {
       display: flex;
       flex-direction: column;
@@ -206,7 +161,6 @@
       color: var(--text-dim);
     }
 
-    /* ── Search input ── */
     #search-query {
       width: 100%;
       padding: 0.5rem 0.7rem;
@@ -229,7 +183,6 @@
       color: var(--accent);
     }
 
-    /* ── Radio and checkbox rows ── */
     .radio-row, .checkbox-row {
       display: flex;
       flex-wrap: wrap;
@@ -266,7 +219,15 @@
       cursor: not-allowed;
     }
 
-    /* ── Sort direction toggle ── */
+    .field-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-dim);
+      font-family: var(--mono);
+      margin-bottom: 0.4rem;
+    }
+
     .sort-dir {
       display: flex;
       gap: 0.5rem;
@@ -282,7 +243,6 @@
       font-family: var(--mono);
     }
 
-    /* ── Results section ── */
     #results {
       font-family: var(--mono);
       font-size: 0.9rem;
@@ -319,7 +279,6 @@
       font-size: 0.9rem;
     }
 
-    /* ── Result table ── */
     table.result-table {
       border-collapse: collapse;
       width: 100%;
@@ -345,13 +304,11 @@
       background: var(--surface);
     }
 
-    /* Wide HTML — full borders */
     table.result-table.wide th,
     table.result-table.wide td {
       border: 1px solid var(--border);
     }
 
-    /* Tight HTML — no borders, tighter padding */
     table.result-table.tight th,
     table.result-table.tight td {
       border: none;
@@ -362,7 +319,6 @@
       background: transparent;
     }
 
-    /* ── Mobile adjustments ── */
     @media (max-width: 600px) {
       body { padding: 0.5rem; }
       button { padding: 0.65rem 0.8rem; font-size: 1rem; flex: 1; }
@@ -410,14 +366,26 @@
   </div>
 </div>
 <div class="section-body" id="search-controls">
+  <div class="field-label">Search for</div>
   <input type="text" id="search-query" placeholder="Enter search…"
+         maxlength="200"
          onkeydown="if(event.key==='Enter') doSearch()">
   <div class="regex-hint">
-    Use <span>\</span> before permitted regex characters to search for
-    <span>. * | ^ $ ( ) [ ] -</span> in Title.
-    Use <span>..</span> for a range in Date Read search.
+    Use <span>..</span> for a date range (Date Read field).
     Only Subjects are case sensitive.
   </div>
+  <div class="checkbox-row" style="margin-bottom:0.5rem">
+    <label class="checkbox-item">
+      <input type="checkbox" id="use-regex" onchange="updateRegexHint()">
+      <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_expressions/Cheatsheet"
+         target="_blank" rel="noopener"
+         style="color:var(--accent-dim);font-family:var(--mono);font-size:0.85rem;">Enable regex?</a>
+    </label>
+  </div>
+  <div id="regex-hint-extra" class="regex-hint" style="display:none">
+    Permitted: <span>. * | ^ $ ( ) [ ] -</span> &nbsp; Use <span>\</span> to escape.
+  </div>
+  <div class="field-label">Where to search?</div>
   <div class="radio-row">
     <label class="radio-item">
       <input type="radio" name="search-field" id="sf-title" value="title" checked> Title
@@ -531,6 +499,9 @@
     </div>
     <div id="copy-status" style="font-size:0.75rem;font-family:var(--mono);color:var(--accent-dim);margin-top:0.4rem;min-height:1.2em;"></div>
   </div>
+  <div class="btn-row" style="margin-top:0.75rem">
+    <button onclick="doSearch()">Search / Refresh Results</button>
+  </div>
 </div>
 
 <!-- ── RESULTS (always open, no height limit) ── -->
@@ -546,8 +517,8 @@
   </div>
 </div>
 
-<script src="bl-load-data.js?v=1.5"></script>
-<script src="bl-search.js?v=2.0"></script>
+<script src="bl-load-data.js?v=1.6"></script>
+<script src="bl-search.js?v=2.2"></script>
 <script src="bl-display.js?v=1.4"></script>
 <script>
   function toggleSection(id) {
@@ -557,7 +528,6 @@
     toggle.textContent = collapsed ? '▼ show' : '▲ hide';
   }
 
-  // Prevent unchecking the last checked display option
   function guardCheckboxes() {
     const boxes = document.querySelectorAll('#display-options input[type="checkbox"]');
     const checked = Array.from(boxes).filter(b => b.checked);
@@ -573,7 +543,6 @@
     });
   }
 
-  // Return current display options
   function getDisplayOptions() {
     return {
       title:    document.getElementById('opt-title').checked,
@@ -584,19 +553,16 @@
     };
   }
 
-  // Return currently selected search field
   function getSearchField() {
     const sel = document.querySelector('input[name="search-field"]:checked');
     return sel ? sel.value : 'title';
   }
 
-  // Return selected result format
   function getResultFormat() {
     const sel = document.querySelector('input[name="result-format"]:checked');
     return sel ? sel.value : 'dense';
   }
 
-  // Return current sort options
   function getSortOptions() {
     const field = document.querySelector('input[name="sort-field"]:checked');
     const dir   = document.querySelector('input[name="sort-dir"]:checked');
@@ -606,7 +572,15 @@
     };
   }
 
-  // Map sort field values to display option checkbox IDs
+  function getUseRegex() {
+    return document.getElementById('use-regex').checked;
+  }
+
+  function updateRegexHint() {
+    const extra = document.getElementById('regex-hint-extra');
+    extra.style.display = getUseRegex() ? 'block' : 'none';
+  }
+
   const SORT_TO_DISPLAY = {
     title:    'opt-title',
     pubYear:  'opt-pubyear',
@@ -615,10 +589,9 @@
     authors:  'opt-authors'
   };
 
-  // Auto-select display checkbox when sort field is chosen
   function onSortFieldChange(radio) {
     const checkId = SORT_TO_DISPLAY[radio.value];
-    if (!checkId) return;  // 'none' has no mapping
+    if (!checkId) return;
     const cb = document.getElementById(checkId);
     if (cb && !cb.checked) {
       cb.checked = true;
@@ -626,20 +599,19 @@
     }
   }
 
-  // Execute search and sort
   function doSearch() {
     const query = document.getElementById('search-query').value;
     if (!query.trim()) return;
     const field   = getSearchField();
     const sort    = getSortOptions();
-    let results   = searchRecords(query, field);
+    const useRegex = getUseRegex();
+    let results   = searchRecords(query, field, useRegex);
     results       = sortRecords(results, sort.field, sort.dir);
     displayResults(results, `Search: ${query}`);
     const body = document.getElementById('results-section');
     if (body.classList.contains('collapsed')) toggleSection('results-section');
   }
 
-  // Update elapsed time in Data Loading header
   function updateElapsed() {
     const el = document.getElementById('elapsed');
     if (!bookData.loadedAt) { el.textContent = ''; return; }
@@ -654,19 +626,18 @@
         const el = document.getElementById(id);
         if (el) el.disabled = !enabled;
       });
-    // If data just finished loading and URL has a query, run it automatically
     if (enabled && new URLSearchParams(location.search).has('q')) {
       setTimeout(doSearch, 50);
     }
   }
 
-  // Build URL encoding current search and display state
   function buildSearchUrl() {
     const field  = getSearchField();
     const query  = document.getElementById('search-query').value;
     const sort   = getSortOptions();
     const opts   = getDisplayOptions();
     const fmt    = getResultFormat();
+    const regex  = getUseRegex();
 
     const disp = Object.entries(opts)
       .filter(([,v]) => v).map(([k]) => k).join(',');
@@ -675,28 +646,25 @@
       field, q: query,
       sort: sort.field, dir: sort.dir,
       disp, fmt,
-      collapsed: '1'   // top 3 sections hidden when URL is used
+      regex: regex ? '1' : '0',
+      collapsed: '1'
     });
     return `${location.origin}${location.pathname}?${params.toString()}`;
   }
 
-  // Restore state from URL parameters on page load
   function restoreFromUrl() {
     const params = new URLSearchParams(location.search);
-    if (!params.has('q')) return;  // nothing to restore
+    if (!params.has('q')) return;
 
-    // Search field
     const field = params.get('field');
     if (field) {
       const r = document.querySelector(`input[name="search-field"][value="${field}"]`);
       if (r) r.checked = true;
     }
 
-    // Query
     const q = params.get('q');
     if (q) document.getElementById('search-query').value = q;
 
-    // Sort
     const sortField = params.get('sort');
     if (sortField) {
       const r = document.querySelector(`input[name="sort-field"][value="${sortField}"]`);
@@ -708,7 +676,6 @@
       if (r) r.checked = true;
     }
 
-    // Display fields
     const disp = (params.get('disp') || '').split(',');
     ['title','pubYear','dateRead','authors','subjects'].forEach(f => {
       const cb = document.getElementById('opt-' + f.toLowerCase());
@@ -716,14 +683,18 @@
     });
     guardCheckboxes();
 
-    // Format
     const fmt = params.get('fmt');
     if (fmt) {
       const r = document.querySelector(`input[name="result-format"][value="${fmt}"]`);
       if (r) r.checked = true;
     }
 
-    // Collapse top 3 sections if requested
+    const regex = params.get('regex');
+    if (regex) {
+      document.getElementById('use-regex').checked = (regex === '1');
+      updateRegexHint();
+    }
+
     if (params.get('collapsed') === '1') {
       ['data-loading', 'search-controls', 'display-options'].forEach(id => {
         const body = document.getElementById(id);
@@ -736,7 +707,6 @@
     }
   }
 
-  // Copy results panel text to clipboard
   function copyResults() {
     const el = document.getElementById('results');
     const text = el ? el.innerText : '';
@@ -747,7 +717,6 @@
     });
   }
 
-  // Copy search URL to clipboard
   function copySearchUrl() {
     const url = buildSearchUrl();
     navigator.clipboard.writeText(url).then(() => {
@@ -765,8 +734,6 @@
   }
 
   setInterval(updateElapsed, 60000);
-
-  // Restore URL state before loading data, then run search if query present
   restoreFromUrl();
   loadData();
 </script>
