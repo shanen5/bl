@@ -78,7 +78,7 @@ Donald                Harden        76
 S.          H.        Butcher       78
 Andrew                Lang          79
 Carl                  Kidwell       80
-Samuel      Langlorne Clemens       81
+Samuel      Langhorne Clemens       81
 Mark                  Twain         82
 John                  Read          83
 Robert                Bendiner      84
@@ -5541,4 +5541,6 @@ Holly                 Jackson     5540
 Naruki                Nagakawa    5541
 Roland                Barthes     5542
 Kevin                 Wilson      5543
+Yumi                  Selden      5544
+Wim                   Wenders     5545
 
