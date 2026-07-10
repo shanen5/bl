@@ -4,18 +4,16 @@
   <!--
     Git-Booklist.html
     Author:  Claude (Anthropic) — claude.ai
-    Version: 3.1 — Asc/Desc labels expanded to Ascending/Descending.
-                   "Search for:" and "Where to search?" moved inline with
-                   their respective fields. Margins and section gaps tightened.
-                   Clipboard label and Search/Refresh button moved inline with
-                   clipboard buttons. Both Search buttons given distinct color.
+    Version: 3.2 — Display Options labels moved inline with their controls,
+                   matching Search Controls layout. Wide display treated as
+                   baseline; narrow display wraps as needed.
     Created:  2026-05-17
-    Modified: 2026-07-05
+    Modified: 2026-07-10
   -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="author" content="Claude (Anthropic)">
-  <meta name="version" content="3.1">
+  <meta name="version" content="3.2">
   <meta name="description" content="Book list search tool">
   <link rel="icon" type="image/x-icon" href="/bl/favicon.ico">
   <title>Book List</title>
@@ -148,7 +146,6 @@
       cursor: not-allowed;
     }
 
-    /* Search buttons — distinct green color */
     button.search-btn {
       background: var(--search-btn-bg);
       color: #fff;
@@ -160,23 +157,7 @@
       color: #fff;
     }
 
-    .control-group {
-      display: flex;
-      flex-direction: column;
-      gap: 0.3rem;
-      margin-bottom: 0.5rem;
-    }
-
-    .control-group:last-child { margin-bottom: 0; }
-
-    .control-group label {
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--text-dim);
-    }
-
-    /* Inline label + field row */
+    /* Inline label + controls on one line, wrapping on narrow displays */
     .inline-row {
       display: flex;
       align-items: baseline;
@@ -222,7 +203,6 @@
       flex-wrap: wrap;
       gap: 0.75rem;
       align-items: center;
-      margin-bottom: 0.4rem;
     }
 
     .radio-item, .checkbox-item {
@@ -243,29 +223,9 @@
       accent-color: var(--accent);
     }
 
-    .radio-item.pending, .checkbox-item.pending {
-      opacity: 0.45;
-      cursor: not-allowed;
-    }
-
     .checkbox-item.last-checked {
       opacity: 0.5;
       cursor: not-allowed;
-    }
-
-    .sort-dir {
-      display: flex;
-      gap: 0.5rem;
-      margin-top: 0.3rem;
-      align-items: center;
-    }
-
-    .sort-dir label {
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--text-dim);
-      font-family: var(--mono);
     }
 
     #results {
@@ -343,13 +303,6 @@
     table.result-table.tight tr:nth-child(even) td {
       background: transparent;
     }
-
-    @media (max-width: 600px) {
-      body { padding: 0.5rem; }
-      button { padding: 0.65rem 0.8rem; font-size: 1rem; flex: 1; }
-      .radio-row, .checkbox-row { gap: 0.75rem; }
-      .section-header .header-meta { display: none; }
-    }
   </style>
 </head>
 <body>
@@ -367,19 +320,15 @@
   <div class="btn-row" style="margin-bottom:0.5rem">
     <button id="reload-btn" disabled onclick="loadData()">↺ Reload Data</button>
   </div>
-  <div class="control-group">
-    <label>Titles — diagnostic</label>
-    <div class="btn-row">
-      <button id="titles-first" disabled onclick="showRecords('titles', 'first')">First 5</button>
-      <button id="titles-last"  disabled onclick="showRecords('titles', 'last')">Last 5</button>
-    </div>
+  <div class="inline-row" style="margin-bottom:0.3rem">
+    <span class="inline-label">Titles — diagnostic:</span>
+    <button id="titles-first" disabled onclick="showRecords('titles', 'first')">First 5</button>
+    <button id="titles-last"  disabled onclick="showRecords('titles', 'last')">Last 5</button>
   </div>
-  <div class="control-group">
-    <label>Authors — diagnostic</label>
-    <div class="btn-row">
-      <button id="authors-first" disabled onclick="showRecords('authors', 'first')">First 5</button>
-      <button id="authors-last"  disabled onclick="showRecords('authors', 'last')">Last 5</button>
-    </div>
+  <div class="inline-row">
+    <span class="inline-label">Authors — diagnostic:</span>
+    <button id="authors-first" disabled onclick="showRecords('authors', 'first')">First 5</button>
+    <button id="authors-last"  disabled onclick="showRecords('authors', 'last')">Last 5</button>
   </div>
 </div>
 
@@ -398,36 +347,25 @@
            onkeydown="if(event.key==='Enter') doSearch()">
   </div>
   <div class="regex-hint">
-    Use <span>..</span> for a date range (Date Read field). Only Subjects are case sensitive.
+    Use <span>..</span> for a date range (Date Read). Only Subjects are case sensitive.
     &nbsp;
     <label class="checkbox-item" style="display:inline-flex">
       <input type="checkbox" id="use-regex" onchange="updateRegexHint()">
       <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_expressions/Cheatsheet"
-         target="_blank" rel="noopener"
-         style="color:var(--accent-dim);">Enable regex?</a>
+         target="_blank" rel="noopener" style="color:var(--accent-dim);">Enable regex?</a>
     </label>
   </div>
-  <div id="regex-hint-extra" class="regex-hint" style="display:none;margin-top:-0.3rem">
-    Regex permitted: <span>. * + ? | ^ $ ( ) [ ] { } \</span>
+  <div id="regex-hint-extra" class="regex-hint" style="display:none;margin-top:-0.25rem">
+    Full JavaScript regex — see MDN link above.
   </div>
   <div class="inline-row">
     <span class="inline-label">Where to search?</span>
-    <div class="radio-row" style="margin-bottom:0">
-      <label class="radio-item">
-        <input type="radio" name="search-field" id="sf-title" value="title" checked> Title
-      </label>
-      <label class="radio-item">
-        <input type="radio" name="search-field" id="sf-pubyear" value="pubYear"> PubYear
-      </label>
-      <label class="radio-item">
-        <input type="radio" name="search-field" id="sf-dateread" value="dateRead"> Date Read
-      </label>
-      <label class="radio-item">
-        <input type="radio" name="search-field" id="sf-subjects" value="subjects"> Subjects
-      </label>
-      <label class="radio-item">
-        <input type="radio" name="search-field" id="sf-author" value="author"> Author
-      </label>
+    <div class="radio-row">
+      <label class="radio-item"><input type="radio" name="search-field" value="title" checked> Title</label>
+      <label class="radio-item"><input type="radio" name="search-field" value="pubYear"> PubYear</label>
+      <label class="radio-item"><input type="radio" name="search-field" value="dateRead"> Date Read</label>
+      <label class="radio-item"><input type="radio" name="search-field" value="subjects"> Subjects</label>
+      <label class="radio-item"><input type="radio" name="search-field" value="author"> Author</label>
     </div>
   </div>
   <div class="btn-row" style="margin-top:0.3rem">
@@ -443,85 +381,45 @@
   </div>
 </div>
 <div class="section-body" id="display-options">
-  <div class="control-group">
-    <label>Fields to display</label>
+  <div class="inline-row">
+    <span class="inline-label">Fields to display:</span>
     <div class="checkbox-row">
-      <label class="checkbox-item">
-        <input type="checkbox" id="opt-title"    checked onchange="guardCheckboxes()"> Title
-      </label>
-      <label class="checkbox-item">
-        <input type="checkbox" id="opt-pubyear"         onchange="guardCheckboxes()"> PubYear
-      </label>
-      <label class="checkbox-item">
-        <input type="checkbox" id="opt-dateread" checked onchange="guardCheckboxes()"> Date Read
-      </label>
-      <label class="checkbox-item">
-        <input type="checkbox" id="opt-authors"         onchange="guardCheckboxes()"> Authors
-      </label>
-      <label class="checkbox-item">
-        <input type="checkbox" id="opt-subjects"        onchange="guardCheckboxes()"> Subjects
-      </label>
+      <label class="checkbox-item"><input type="checkbox" id="opt-title"    checked onchange="guardCheckboxes()"> Title</label>
+      <label class="checkbox-item"><input type="checkbox" id="opt-pubyear"         onchange="guardCheckboxes()"> PubYear</label>
+      <label class="checkbox-item"><input type="checkbox" id="opt-dateread" checked onchange="guardCheckboxes()"> Date Read</label>
+      <label class="checkbox-item"><input type="checkbox" id="opt-authors"         onchange="guardCheckboxes()"> Authors</label>
+      <label class="checkbox-item"><input type="checkbox" id="opt-subjects"        onchange="guardCheckboxes()"> Subjects</label>
     </div>
   </div>
-  <div class="control-group">
-    <label>Sort by</label>
+  <div class="inline-row">
+    <span class="inline-label">Sort by:</span>
     <div class="radio-row">
-      <label class="radio-item">
-        <input type="radio" name="sort-field" value="none" checked onchange="onSortFieldChange(this)"> None
-      </label>
-      <label class="radio-item">
-        <input type="radio" name="sort-field" value="title" onchange="onSortFieldChange(this)"> Title
-      </label>
-      <label class="radio-item">
-        <input type="radio" name="sort-field" value="pubYear" onchange="onSortFieldChange(this)"> PubYear
-      </label>
-      <label class="radio-item">
-        <input type="radio" name="sort-field" value="dateRead" onchange="onSortFieldChange(this)"> Date Read
-      </label>
-      <label class="radio-item">
-        <input type="radio" name="sort-field" value="subjects" onchange="onSortFieldChange(this)"> Subjects
-      </label>
-      <label class="radio-item">
-        <input type="radio" name="sort-field" value="author" onchange="onSortFieldChange(this)"> Author
-      </label>
-    </div>
-    <div class="sort-dir">
-      <label>Direction:</label>
-      <label class="radio-item">
-        <input type="radio" name="sort-dir" value="asc" checked> Ascending
-      </label>
-      <label class="radio-item">
-        <input type="radio" name="sort-dir" value="desc"> Descending
-      </label>
+      <label class="radio-item"><input type="radio" name="sort-field" value="none"     checked onchange="onSortFieldChange(this)"> None</label>
+      <label class="radio-item"><input type="radio" name="sort-field" value="title"           onchange="onSortFieldChange(this)"> Title</label>
+      <label class="radio-item"><input type="radio" name="sort-field" value="pubYear"         onchange="onSortFieldChange(this)"> PubYear</label>
+      <label class="radio-item"><input type="radio" name="sort-field" value="dateRead"        onchange="onSortFieldChange(this)"> Date Read</label>
+      <label class="radio-item"><input type="radio" name="sort-field" value="subjects"        onchange="onSortFieldChange(this)"> Subjects</label>
+      <label class="radio-item"><input type="radio" name="sort-field" value="author"          onchange="onSortFieldChange(this)"> Author</label>
+      <span style="font-family:var(--mono);font-size:0.8rem;color:var(--text-dim);">Direction:</span>
+      <label class="radio-item"><input type="radio" name="sort-dir" value="asc" checked> Ascending</label>
+      <label class="radio-item"><input type="radio" name="sort-dir" value="desc"> Descending</label>
     </div>
   </div>
-  <div class="control-group" style="margin-top:0.5rem">
-    <label>Result format</label>
+  <div class="inline-row">
+    <span class="inline-label">Result format:</span>
     <div class="radio-row">
-      <label class="radio-item">
-        <input type="radio" name="result-format" value="dense" checked> Dense
-      </label>
-      <label class="radio-item">
-        <input type="radio" name="result-format" value="table"> Table
-      </label>
-      <label class="radio-item">
-        <input type="radio" name="result-format" value="wide"> Wide HTML
-      </label>
-      <label class="radio-item">
-        <input type="radio" name="result-format" value="tight"> Tight HTML
-      </label>
-      <label class="radio-item">
-        <input type="radio" name="result-format" value="csv"> CSV
-      </label>
-      <label class="radio-item">
-        <input type="radio" name="result-format" value="count"> Count
-      </label>
+      <label class="radio-item"><input type="radio" name="result-format" value="dense" checked> Dense</label>
+      <label class="radio-item"><input type="radio" name="result-format" value="table"> Table</label>
+      <label class="radio-item"><input type="radio" name="result-format" value="wide"> Wide HTML</label>
+      <label class="radio-item"><input type="radio" name="result-format" value="tight"> Tight HTML</label>
+      <label class="radio-item"><input type="radio" name="result-format" value="csv"> CSV</label>
+      <label class="radio-item"><input type="radio" name="result-format" value="count"> Count</label>
     </div>
   </div>
-  <div class="btn-row" style="margin-top:0.5rem">
+  <div class="btn-row" style="margin-top:0.4rem">
     <span class="inline-label" style="align-self:center">Clipboard:</span>
-    <button id="copy-results-btn" onclick="copyResults()">Copy Results</button>
-    <button id="copy-url-btn" onclick="copySearchUrl()">Copy URL</button>
+    <button onclick="copyResults()">Copy Results</button>
+    <button onclick="copySearchUrl()">Copy URL</button>
     <button class="search-btn" onclick="doSearch()">Search / Refresh Results</button>
   </div>
   <div id="copy-status" style="font-size:0.75rem;font-family:var(--mono);color:var(--accent-dim);margin-top:0.3rem;min-height:1.2em;"></div>
@@ -600,8 +498,8 @@
   }
 
   function updateRegexHint() {
-    const extra = document.getElementById('regex-hint-extra');
-    extra.style.display = getUseRegex() ? 'block' : 'none';
+    document.getElementById('regex-hint-extra').style.display =
+      getUseRegex() ? 'block' : 'none';
   }
 
   const SORT_TO_DISPLAY = {
@@ -616,10 +514,7 @@
     const checkId = SORT_TO_DISPLAY[radio.value];
     if (!checkId) return;
     const cb = document.getElementById(checkId);
-    if (cb && !cb.checked) {
-      cb.checked = true;
-      guardCheckboxes();
-    }
+    if (cb && !cb.checked) { cb.checked = true; guardCheckboxes(); }
   }
 
   function doSearch() {
@@ -661,16 +556,10 @@
     const opts   = getDisplayOptions();
     const fmt    = getResultFormat();
     const regex  = getUseRegex();
-
-    const disp = Object.entries(opts)
-      .filter(([,v]) => v).map(([k]) => k).join(',');
-
+    const disp   = Object.entries(opts).filter(([,v]) => v).map(([k]) => k).join(',');
     const params = new URLSearchParams({
-      field, q: query,
-      sort: sort.field, dir: sort.dir,
-      disp, fmt,
-      regex: regex ? '1' : '0',
-      collapsed: '1'
+      field, q: query, sort: sort.field, dir: sort.dir,
+      disp, fmt, regex: regex ? '1' : '0', collapsed: '1'
     });
     return `${location.origin}${location.pathname}?${params.toString()}`;
   }
@@ -684,7 +573,6 @@
       const r = document.querySelector(`input[name="search-field"][value="${field}"]`);
       if (r) r.checked = true;
     }
-
     const q = params.get('q');
     if (q) document.getElementById('search-query').value = q;
 
@@ -732,8 +620,7 @@
 
   function copyResults() {
     const el = document.getElementById('results');
-    const text = el ? el.innerText : '';
-    navigator.clipboard.writeText(text).then(() => {
+    navigator.clipboard.writeText(el ? el.innerText : '').then(() => {
       showCopyStatus('Results copied to clipboard');
     }).catch(() => {
       showCopyStatus('Copy failed — try selecting and copying manually');
@@ -741,8 +628,7 @@
   }
 
   function copySearchUrl() {
-    const url = buildSearchUrl();
-    navigator.clipboard.writeText(url).then(() => {
+    navigator.clipboard.writeText(buildSearchUrl()).then(() => {
       showCopyStatus('URL copied to clipboard');
     }).catch(() => {
       showCopyStatus('Copy failed');
