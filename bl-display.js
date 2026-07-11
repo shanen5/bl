@@ -2,46 +2,33 @@
  * bl-display.js
  * -------------
  * Handles rendering of book records into the #results div.
- * Receives pre-filtered record arrays from bl-search.js or
- * directly from bookData for diagnostic displays.
- * Respects display options and result format returned by
- * getDisplayOptions() and getResultFormat() in the main HTML.
  *
  * Exports (globals):
- *   showRecords(file, position) — diagnostic display of first or last 5
- *                                 records from specified file, used by
- *                                 Data Loading section buttons.
- *   displayResults(records, label) — renders an array of title record objects
- *                                 into #results, respecting Display Options
- *                                 and Result Format selection.
+ *   showRecords(file, position) — diagnostic display of first or last 5 records
+ *   displayResults(records, label) — renders search results respecting Display
+ *                                    Options and Result Format
  *   escapeHtml(str)             — utility: escapes HTML special characters
  *   formatDate(d)               — utility: formats a Date as YYYY-MM-DD
  *
  * Result formats:
- *   dense  — pipe-separated fields on one line per record (default, phone-friendly)
- *   table  — HTML table with author names resolved from authorById
- *   csv    — comma-delimited, fields quoted if needed
- *   count  — total matching record count only
+ *   dense       — pipe-separated fields, one line per record (default)
+ *   table       — full-width striped HTML table, author names resolved
+ *   wide        — Classic HTML: bordered table, width follows content
+ *   tight       — full-width no-border table, author names resolved
+ *   csv         — comma-delimited, author IDs
+ *   count       — matching record count only
  *
  * Author:  Claude (Anthropic) — claude.ai
  * Version: 1.0 — Initial separation from Git-Booklist.html (v2)
- * Version: 1.1 — Updated to work with parsed record objects from bl-load-data.js
- *                v1.4. Titles display respects Display Options checkboxes.
- *                Author IDs shown as raw numbers pending name lookup feature.
- *                Safety check: displays message if no fields selected.
- * Version: 1.2 — Search logic moved to bl-search.js. Added displayResults()
- *                for rendering search results. showRecords() retained for
- *                diagnostic First 5 / Last 5 display in Data Loading section.
- * Version: 1.3 — Added result format support: Dense (existing), Table (HTML
- *                table with resolved author names), CSV (comma-delimited),
- *                Count (total only). Format selected via getResultFormat()
- *                in main HTML. Table format always resolves author names
- *                regardless of Authors display checkbox.
- * Version: 1.4 — Added Wide HTML (full borders) and Tight HTML (no borders)
- *                table formats. All three HTML table formats resolve author
- *                names. CSS class applied to table element controls styling.
+ * Version: 1.1 — Updated to work with parsed record objects from bl-load-data.js v1.4.
+ * Version: 1.2 — Search logic moved to bl-search.js. Added displayResults().
+ * Version: 1.3 — Added result format support: Dense, Table, CSV, Count.
+ * Version: 1.4 — Added Wide HTML and Tight HTML table formats.
+ * Version: 1.5 — Classic HTML (formerly Wide HTML) table no longer wrapped in
+ *                overflow-x:auto div, allowing it to shrink to content width.
+ *                Table and Tight HTML retain full-width wrapper.
  * Created:  2026-05-20
- * Modified: 2026-05-31
+ * Modified: 2026-07-11
  */
 
 function escapeHtml(str) {
@@ -52,7 +39,6 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;');
 }
 
-// Format a JavaScript Date as YYYY-MM-DD, or blank if null
 function formatDate(d) {
   if (!d) return '';
   const y = d.getFullYear();
@@ -61,7 +47,6 @@ function formatDate(d) {
   return `${y}-${m}-${day}`;
 }
 
-// Resolve author IDs to a display name string
 function resolveAuthors(rec, asNames) {
   const ids = [rec.authorId1, rec.authorId2, rec.authorId3].filter(Boolean);
   if (!ids.length) return '';
@@ -73,12 +58,10 @@ function resolveAuthors(rec, asNames) {
   }).join('; ');
 }
 
-// Format subjects as a space-separated string
 function formatSubjects(rec) {
   return [rec.subject1, rec.subject2, rec.subject3].filter(Boolean).join(' ');
 }
 
-// Quote a CSV field if it contains comma, quote, or newline
 function csvField(val) {
   const s = String(val === null || val === undefined ? '' : val);
   if (s.includes(',') || s.includes('"') || s.includes('\n')) {
@@ -87,7 +70,6 @@ function csvField(val) {
   return s;
 }
 
-// ── Dense format ──────────────────────────────────────────────────────────────
 function formatDense(records, opts) {
   const lines = records.map(rec => {
     const parts = [];
@@ -101,8 +83,9 @@ function formatDense(records, opts) {
   return `<pre>${lines.join('\n')}</pre>`;
 }
 
-// ── Table format (shared by Table, Wide HTML, Tight HTML) ────────────────────
-function formatTable(records, opts, tableClass) {
+// tableClass: '' for Table, 'wide' for Classic HTML, 'tight' for Tight HTML
+// fullWidth:  true for Table and Tight HTML, false for Classic HTML
+function formatTable(records, opts, tableClass, fullWidth) {
   const cols = [];
   if (opts.title)    cols.push({ key: 'title',    label: 'Title' });
   if (opts.pubYear)  cols.push({ key: 'pubYear',  label: 'Year' });
@@ -126,17 +109,21 @@ function formatTable(records, opts, tableClass) {
     return `<tr>${cells.join('')}</tr>`;
   });
 
-  const cls = tableClass ? `result-table ${tableClass}` : 'result-table';
-  return `
-    <div style="overflow-x:auto">
-      <table class="${cls}">
-        <thead><tr>${header}</tr></thead>
-        <tbody>${rows.join('')}</tbody>
-      </table>
-    </div>`;
+  const cls = ['result-table', tableClass, fullWidth ? 'full-width' : '']
+    .filter(Boolean).join(' ');
+
+  const table = `<table class="${cls}">
+    <thead><tr>${header}</tr></thead>
+    <tbody>${rows.join('')}</tbody>
+  </table>`;
+
+  // Classic HTML: no wrapper, so table shrinks to content
+  if (!fullWidth) return table;
+
+  // Table and Tight HTML: scrollable full-width wrapper
+  return `<div style="overflow-x:auto">${table}</div>`;
 }
 
-// ── CSV format ────────────────────────────────────────────────────────────────
 function formatCSV(records, opts) {
   const cols = [];
   if (opts.title)    cols.push({ key: 'title',    label: 'Title' });
@@ -162,7 +149,6 @@ function formatCSV(records, opts) {
   return `<pre>${escapeHtml([header, ...rows].join('\n'))}</pre>`;
 }
 
-// ── Main displayResults ───────────────────────────────────────────────────────
 function displayResults(records, label) {
   const opts = (typeof getDisplayOptions === 'function')
     ? getDisplayOptions()
@@ -177,7 +163,6 @@ function displayResults(records, label) {
     ? `${label} — ${count} record${count !== 1 ? 's' : ''}`
     : `${count} record${count !== 1 ? 's' : ''}`;
 
-  // Count format — just show the number
   if (format === 'count') {
     document.getElementById('results').innerHTML = `
       <div class="result-block">
@@ -207,11 +192,11 @@ function displayResults(records, label) {
 
   let body = '';
   switch (format) {
-    case 'table': body = formatTable(records, opts, '');      break;
-    case 'wide':  body = formatTable(records, opts, 'wide');  break;
-    case 'tight': body = formatTable(records, opts, 'tight'); break;
-    case 'csv':   body = formatCSV(records, opts);            break;
-    default:      body = formatDense(records, opts);          break;
+    case 'table': body = formatTable(records, opts, '',      true);  break;
+    case 'wide':  body = formatTable(records, opts, 'wide',  false); break;
+    case 'tight': body = formatTable(records, opts, 'tight', true);  break;
+    case 'csv':   body = formatCSV(records, opts);                   break;
+    default:      body = formatDense(records, opts);                  break;
   }
 
   document.getElementById('results').innerHTML = `
@@ -221,7 +206,6 @@ function displayResults(records, label) {
     </div>`;
 }
 
-// Diagnostic: show first or last 5 records from either file
 function showRecords(file, position) {
   const records = bookData[file];
   if (!records) return;
