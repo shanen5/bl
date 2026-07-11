@@ -4,16 +4,18 @@
   <!--
     Git-Booklist.html
     Author:  Claude (Anthropic) — claude.ai
-    Version: 3.2 — Display Options labels moved inline with their controls,
-                   matching Search Controls layout. Wide display treated as
-                   baseline; narrow display wraps as needed.
+    Version: 3.3 — "Wide HTML" renamed to "Classic HTML"; table width
+                   unconstrained for that format so it shrinks to content.
+                   Changing search field now auto-selects that field for
+                   display. Sort field auto-updates to match search field
+                   only when sort is currently "None".
     Created:  2026-05-17
-    Modified: 2026-07-10
+    Modified: 2026-07-11
   -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="author" content="Claude (Anthropic)">
-  <meta name="version" content="3.2">
+  <meta name="version" content="3.3">
   <meta name="description" content="Book list search tool">
   <link rel="icon" type="image/x-icon" href="/bl/favicon.ico">
   <title>Book List</title>
@@ -157,7 +159,6 @@
       color: #fff;
     }
 
-    /* Inline label + controls on one line, wrapping on narrow displays */
     .inline-row {
       display: flex;
       align-items: baseline;
@@ -194,9 +195,7 @@
       margin-bottom: 0.4rem;
     }
 
-    .regex-hint span {
-      color: var(--accent);
-    }
+    .regex-hint span { color: var(--accent); }
 
     .radio-row, .checkbox-row {
       display: flex;
@@ -266,10 +265,12 @@
 
     table.result-table {
       border-collapse: collapse;
-      width: 100%;
       font-family: var(--mono);
       font-size: 0.85rem;
     }
+
+    /* Table and Tight HTML fill full width */
+    table.result-table.full-width { width: 100%; }
 
     table.result-table th {
       background: var(--accent);
@@ -289,11 +290,13 @@
       background: var(--surface);
     }
 
+    /* Classic HTML — full borders, width follows content */
     table.result-table.wide th,
     table.result-table.wide td {
       border: 1px solid var(--border);
     }
 
+    /* Tight HTML — no borders, tighter padding */
     table.result-table.tight th,
     table.result-table.tight td {
       border: none;
@@ -361,11 +364,11 @@
   <div class="inline-row">
     <span class="inline-label">Where to search?</span>
     <div class="radio-row">
-      <label class="radio-item"><input type="radio" name="search-field" value="title" checked> Title</label>
-      <label class="radio-item"><input type="radio" name="search-field" value="pubYear"> PubYear</label>
-      <label class="radio-item"><input type="radio" name="search-field" value="dateRead"> Date Read</label>
-      <label class="radio-item"><input type="radio" name="search-field" value="subjects"> Subjects</label>
-      <label class="radio-item"><input type="radio" name="search-field" value="author"> Author</label>
+      <label class="radio-item"><input type="radio" name="search-field" value="title"    checked onchange="onSearchFieldChange(this)"> Title</label>
+      <label class="radio-item"><input type="radio" name="search-field" value="pubYear"         onchange="onSearchFieldChange(this)"> PubYear</label>
+      <label class="radio-item"><input type="radio" name="search-field" value="dateRead"        onchange="onSearchFieldChange(this)"> Date Read</label>
+      <label class="radio-item"><input type="radio" name="search-field" value="subjects"        onchange="onSearchFieldChange(this)"> Subjects</label>
+      <label class="radio-item"><input type="radio" name="search-field" value="author"          onchange="onSearchFieldChange(this)"> Author</label>
     </div>
   </div>
   <div class="btn-row" style="margin-top:0.3rem">
@@ -408,12 +411,12 @@
   <div class="inline-row">
     <span class="inline-label">Result format:</span>
     <div class="radio-row">
-      <label class="radio-item"><input type="radio" name="result-format" value="dense" checked> Dense</label>
-      <label class="radio-item"><input type="radio" name="result-format" value="table"> Table</label>
-      <label class="radio-item"><input type="radio" name="result-format" value="wide"> Wide HTML</label>
-      <label class="radio-item"><input type="radio" name="result-format" value="tight"> Tight HTML</label>
-      <label class="radio-item"><input type="radio" name="result-format" value="csv"> CSV</label>
-      <label class="radio-item"><input type="radio" name="result-format" value="count"> Count</label>
+      <label class="radio-item"><input type="radio" name="result-format" value="dense"  checked> Dense</label>
+      <label class="radio-item"><input type="radio" name="result-format" value="table">          Table</label>
+      <label class="radio-item"><input type="radio" name="result-format" value="wide">           Classic HTML</label>
+      <label class="radio-item"><input type="radio" name="result-format" value="tight">          Tight HTML</label>
+      <label class="radio-item"><input type="radio" name="result-format" value="csv">            CSV</label>
+      <label class="radio-item"><input type="radio" name="result-format" value="count">          Count</label>
     </div>
   </div>
   <div class="btn-row" style="margin-top:0.4rem">
@@ -442,6 +445,15 @@
 <script src="bl-search.js?v=2.2"></script>
 <script src="bl-display.js?v=1.4"></script>
 <script>
+  // Map search/sort field values to display checkbox IDs
+  const FIELD_TO_DISPLAY = {
+    title:    'opt-title',
+    pubYear:  'opt-pubyear',
+    dateRead: 'opt-dateread',
+    subjects: 'opt-subjects',
+    author:   'opt-authors'
+  };
+
   function toggleSection(id) {
     const body   = document.getElementById(id);
     const toggle = document.getElementById(id + '-toggle');
@@ -462,6 +474,32 @@
         item.classList.remove('last-checked');
       }
     });
+  }
+
+  // Ensure the display checkbox for a given field is checked
+  function ensureDisplayField(fieldValue) {
+    const checkId = FIELD_TO_DISPLAY[fieldValue];
+    if (!checkId) return;
+    const cb = document.getElementById(checkId);
+    if (cb && !cb.checked) { cb.checked = true; guardCheckboxes(); }
+  }
+
+  // When search field changes: auto-select display field,
+  // and update sort field if currently None
+  function onSearchFieldChange(radio) {
+    ensureDisplayField(radio.value);
+    const currentSort = document.querySelector('input[name="sort-field"]:checked');
+    if (currentSort && currentSort.value === 'none') {
+      const sortRadio = document.querySelector(
+        `input[name="sort-field"][value="${radio.value}"]`
+      );
+      if (sortRadio) { sortRadio.checked = true; }
+    }
+  }
+
+  // When sort field changes: auto-select its display field
+  function onSortFieldChange(radio) {
+    ensureDisplayField(radio.value);
   }
 
   function getDisplayOptions() {
@@ -500,21 +538,6 @@
   function updateRegexHint() {
     document.getElementById('regex-hint-extra').style.display =
       getUseRegex() ? 'block' : 'none';
-  }
-
-  const SORT_TO_DISPLAY = {
-    title:    'opt-title',
-    pubYear:  'opt-pubyear',
-    dateRead: 'opt-dateread',
-    subjects: 'opt-subjects',
-    authors:  'opt-authors'
-  };
-
-  function onSortFieldChange(radio) {
-    const checkId = SORT_TO_DISPLAY[radio.value];
-    if (!checkId) return;
-    const cb = document.getElementById(checkId);
-    if (cb && !cb.checked) { cb.checked = true; guardCheckboxes(); }
   }
 
   function doSearch() {
