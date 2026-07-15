@@ -4,13 +4,13 @@
   <!--
     Git-Booklist.html
     Author:  Claude (Anthropic) — claude.ai
-    Version: 3.3 — "Wide HTML" renamed to "Classic HTML"; table width
+    Version: 3.4 — "Wide HTML" renamed to "Classic HTML"; table width
                    unconstrained for that format so it shrinks to content.
                    Changing search field now auto-selects that field for
                    display. Sort field auto-updates to match search field
                    only when sort is currently "None".
     Created:  2026-05-17
-    Modified: 2026-07-11
+    Modified: 2026-07-15
   -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -403,9 +403,9 @@
       <label class="radio-item"><input type="radio" name="sort-field" value="dateRead"        onchange="onSortFieldChange(this)"> Date Read</label>
       <label class="radio-item"><input type="radio" name="sort-field" value="subjects"        onchange="onSortFieldChange(this)"> Subjects</label>
       <label class="radio-item"><input type="radio" name="sort-field" value="author"          onchange="onSortFieldChange(this)"> Author</label>
-      <span style="font-family:var(--mono);font-size:0.8rem;color:var(--text-dim);">Direction:</span>
-      <label class="radio-item"><input type="radio" name="sort-dir" value="asc" checked> Ascending</label>
-      <label class="radio-item"><input type="radio" name="sort-dir" value="desc"> Descending</label>
+      <span class="inline-label">Sort direction:</span>
+      <label class="radio-item"><input type="radio" name="sort-dir" value="asc" checked> ↑</label>
+      <label class="radio-item"><input type="radio" name="sort-dir" value="desc"> ↓</label>
     </div>
   </div>
   <div class="inline-row">
