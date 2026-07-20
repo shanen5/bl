@@ -4,13 +4,13 @@
   <!--
     Git-Booklist.html
     Author:  Claude (Anthropic) — claude.ai
-    Version: 3.4 — "Wide HTML" renamed to "Classic HTML"; table width
+    Version: 3.5 — "Wide HTML" renamed to "Classic HTML"; table width
                    unconstrained for that format so it shrinks to content.
                    Changing search field now auto-selects that field for
                    display. Sort field auto-updates to match search field
                    only when sort is currently "None".
     Created:  2026-05-17
-    Modified: 2026-07-15
+    Modified: 2026-07-21
   -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -21,6 +21,7 @@
   <title>Book List</title>
   <style>
     :root {
+      --label-bg: #fffbe6;
       --bg: #ddeeff;
       --surface: #c8dff5;
       --border: #9ab8d8;
@@ -168,6 +169,9 @@
     }
 
     .inline-label {
+      background: var(--label-bg);
+      padding: 0.1rem 0.35rem;
+      border-radius: 2px;
       font-size: 0.75rem;
       text-transform: uppercase;
       letter-spacing: 0.1em;
@@ -352,7 +356,7 @@
   <div class="regex-hint">
     Use <span>..</span> for a date range (Date Read). Only Subjects are case sensitive.
     &nbsp;
-    <label class="checkbox-item" style="display:inline-flex">
+    <label class="checkbox-item" style="display:inline-flex;background:var(--label-bg);padding:0.1rem 0.35rem;border-radius:2px;">
       <input type="checkbox" id="use-regex" onchange="updateRegexHint()">
       <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_expressions/Cheatsheet"
          target="_blank" rel="noopener" style="color:var(--accent-dim);">Enable regex?</a>
