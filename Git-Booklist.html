@@ -4,7 +4,7 @@
   <!--
     Git-Booklist.html
     Author:  Claude (Anthropic) — claude.ai
-    Version: 3.5 — "Wide HTML" renamed to "Classic HTML"; table width
+    Version: 3.6 — "Wide HTML" renamed to "Classic HTML"; table width
                    unconstrained for that format so it shrinks to content.
                    Changing search field now auto-selects that field for
                    display. Sort field auto-updates to match search field
@@ -375,9 +375,7 @@
       <label class="radio-item"><input type="radio" name="search-field" value="author"          onchange="onSearchFieldChange(this)"> Author</label>
     </div>
   </div>
-  <div class="btn-row" style="margin-top:0.3rem">
-    <button id="search-btn" class="search-btn" disabled onclick="doSearch()">Search</button>
-  </div>
+
 </div>
 
 <!-- ── DISPLAY OPTIONS ── -->
@@ -422,8 +420,10 @@
       <label class="radio-item"><input type="radio" name="result-format" value="csv">            CSV</label>
       <label class="radio-item"><input type="radio" name="result-format" value="count">          Count</label>
     </div>
+    <button id="search-btn" class="search-btn" disabled onclick="doSearch()" style="align-self:center">Search</button>
   </div>
   <div class="btn-row" style="margin-top:0.4rem">
+    <button class="search-btn" onclick="doSearch()">Search / Refresh Results</button>
     <span class="inline-label" style="align-self:center">Clipboard:</span>
     <button onclick="copyResults()">Copy Results</button>
     <button onclick="copySearchUrl()">Copy URL</button>
