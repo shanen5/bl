@@ -4,15 +4,17 @@
   <!--
     Git-Booklist.html
     Author:  Claude (Anthropic) — claude.ai
-    Version: 3.6 — Search button moved to right of WHERE TO SEARCH? row.
-                   Search/Refresh Results button moved to left of Clipboard row.
+    Version: 3.7 — Section renamed to Search Options. Clear button added
+                   after search input. Reset Options button added to action
+                   row; resets all controls to defaults, clears results,
+                   leaves data intact, cursor to search input.
     Created:  2026-05-17
-    Modified: 2026-07-21
+    Modified: 2026-09-15
   -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="author" content="Claude (Anthropic)">
-  <meta name="version" content="3.3">
+  <meta name="version" content="3.7">
   <meta name="description" content="Book list search tool">
   <link rel="icon" type="image/x-icon" href="/bl/favicon.ico">
   <title>Book List</title>
@@ -154,6 +156,17 @@
 
     button.search-btn:hover:not(:disabled) {
       background: var(--search-btn-hover);
+      color: #fff;
+    }
+
+    button.reset-btn {
+      background: #7a5a1a;
+      color: #fff;
+      border-color: #5a3a00;
+    }
+
+    button.reset-btn:hover:not(:disabled) {
+      background: #5a3a00;
       color: #fff;
     }
 
@@ -336,9 +349,9 @@
   </div>
 </div>
 
-<!-- ── SEARCH CONTROLS (starts open) ── -->
+<!-- ── SEARCH OPTIONS (starts open) ── -->
 <div class="section-header" onclick="toggleSection('search-controls')">
-  <h2>Search Controls</h2>
+  <h2>Search Options</h2>
   <div class="header-right">
     <span class="section-toggle" id="search-controls-toggle">▲ hide</span>
   </div>
@@ -349,6 +362,7 @@
     <input type="text" id="search-query" placeholder="Enter search…"
            maxlength="200"
            onkeydown="if(event.key==='Enter') doSearch()">
+    <button class="reset-btn" onclick="clearSearch()">Clear</button>
   </div>
   <div class="regex-hint">
     Use <span>..</span> for a date range (Date Read). Only Subjects are case sensitive.
@@ -424,6 +438,7 @@
     <span class="inline-label" style="align-self:center">Clipboard:</span>
     <button onclick="copyResults()">Copy Results</button>
     <button onclick="copySearchUrl()">Copy URL</button>
+    <button class="reset-btn" onclick="resetOptions()">Reset Options</button>
   </div>
   <div id="copy-status" style="font-size:0.75rem;font-family:var(--mono);color:var(--accent-dim);margin-top:0.3rem;min-height:1.2em;"></div>
 </div>
@@ -453,6 +468,44 @@
     subjects: 'opt-subjects',
     author:   'opt-authors'
   };
+
+  function clearSearch() {
+    const q = document.getElementById('search-query');
+    q.value = '';
+    q.focus();
+    q.setSelectionRange(0, 0);
+  }
+
+  function resetOptions() {
+    // Clear search input, cursor to start
+    clearSearch();
+
+    // Reset search field to Title
+    document.querySelector('input[name="search-field"][value="title"]').checked = true;
+
+    // Reset sort to None / Ascending
+    document.querySelector('input[name="sort-field"][value="none"]').checked = true;
+    document.querySelector('input[name="sort-dir"][value="asc"]').checked = true;
+
+    // Reset display fields to Title + Date Read
+    document.getElementById('opt-title').checked    = true;
+    document.getElementById('opt-pubyear').checked  = false;
+    document.getElementById('opt-dateread').checked = true;
+    document.getElementById('opt-authors').checked  = false;
+    document.getElementById('opt-subjects').checked = false;
+    guardCheckboxes();
+
+    // Reset format to Dense
+    document.querySelector('input[name="result-format"][value="dense"]').checked = true;
+
+    // Reset regex to off
+    document.getElementById('use-regex').checked = false;
+    updateRegexHint();
+
+    // Clear results
+    document.getElementById('results').innerHTML =
+      '<p class="placeholder">Use the search controls above to query the data files.</p>';
+  }
 
   function toggleSection(id) {
     const body   = document.getElementById(id);
