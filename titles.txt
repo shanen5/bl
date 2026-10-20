@@ -5416,7 +5416,7 @@ Talking to the Dead and Other Stories   19922601075479        HF
 (GMDYWS225)MiraiNoTsukuruHimitsu~YumeNiC20252601115301        JaChBu
 SaiyouHa2ByouDeKimaru:ChokkanHaDokoMadeA2010260118548054813295PsJaIH
 Always Outnumbered, Always Outgunned    19982601272187        HF    
-(GMDYWS226)Denpun.MizuameNoHimitsu      20152601294296        FoJaCh
+(GMDYWS226)Denpun.MizuameNoHimitsu      20252601294296        FoJaCh
 Army of None: Autonomous Weapons and the20192601315482        HiCSPh
 The Night is Short, Walk on Girl(YoruWaM201926020149365483    HuJaFa
 Just Babies:The Origins of Good and Evil20132602025226        PsPh  
@@ -5531,4 +5531,5 @@ A Tale of Eleventh-Century Japan:Hamamat19832610155580        JaRoRe
 Will My Cat Eat My Eyeballs?            20192610165581        Me    
 These Things Here and Now(ImaKokoNiKorer2016261018508555822997JaHFIH
 A Death in Tokyo (KirinNoTsubasa)       202326102031692735    MyJa  
+A View From the Stars                   2024261021440555835584IHSFPh
 
