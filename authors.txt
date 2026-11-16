@@ -196,8 +196,8 @@ Ellery                Queen        195
 Frederick             Forsyth      196
 Michael               Avallone     197
 John                  Oram         198
-Harry                 Whittington  199
-John                  Rackham      200
+Kenneth               Bulmer       199
+William     S.        Baring-Gould 200
 Kenneth               Bulmer       201
 William     S.        Baring-Gould 202
 Abraham               Marcus       203
@@ -5590,4 +5590,5 @@ Kumiko      Fanselow  Fujimura-Fan5589
 Sachiko               Kaneko      5590
 Haruko      K.        Okano       5591
 Kazuko                Koizumi     5592
+Hika                  Harada      5593
 
