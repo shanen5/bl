@@ -41,8 +41,10 @@
  * Version: 1.6 — Status message shows ISO date (YYYY-MM-DD) and time of load.
  *                Removed duplicate setButtonsEnabled() — main HTML version
  *                is authoritative and also covers search-btn.
+ * Version: 1.7 — (Claude Sonnet 5.5) Two-digit year window changed to 1960-2059 (00-59 => 20xx,
+ *                60-99 => 19xx).
  * Created:  2026-05-20
- * Modified: 2026-07-02
+ * Modified: 2026-11-21
  */
 
 const URLS = {
@@ -70,11 +72,11 @@ function isoDate(d) {
 }
 
 // Expand a 2-digit year string to a 4-digit integer
-// Cutoff: 00-29 => 2000-2029, 30-99 => 1930-1999
+// Cutoff: 00-59 => 2000-2059, 60-99 => 1960-1999
 function expandYear(yy) {
   const n = parseInt(yy, 10);
   if (isNaN(n)) return null;
-  return n <= 29 ? 2000 + n : 1900 + n;
+  return n <= 59 ? 2000 + n : 1900 + n;
 }
 
 // Parse a 6-char dateRead field (YYMMdd) into a Date, or null if missing/zero
