@@ -5,7 +5,7 @@
  * Reads from the global `bookData` object populated by bl-load-data.js.
  * Returns filtered and sorted arrays of records for rendering by bl-display.js.
  *
- * Supported query syntax (when regex enabled):
+ * Query syntax when regex enabled: full JavaScript regex. Common elements:
  *   .          any single character
  *   *          zero or more of preceding character
  *   .*         any sequence of characters
@@ -41,8 +41,11 @@
  *                treated as a plain literal string (all special characters escaped
  *                automatically). Date range syntax (..) always active regardless
  *                of regex setting.
+ * Version: 2.3 — (Claude Sonnet 5.5) When regex is enabled the query is passed to RegExp unrestricted
+ *                (full JavaScript syntax); invalid patterns return no results.
+ *                Unused sanitizeQuery() removed.
  * Created:  2026-05-24
- * Modified: 2026-07-02
+ * Modified: 2026-11-21
  */
 
 // Parse a date string in YYYY, YYYYMM, or YYYYMMDD format to a comparable integer
@@ -79,11 +82,6 @@ function escapeLiteral(query) {
   return query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-// Sanitize query for regex use: escape characters not in the allowed subset
-function sanitizeQuery(query) {
-  return query.replace(/[^a-zA-Z0-9.*|^$()[\]\\{}\-_' ]/g, c => '\\' + c);
-}
-
 // Strip leading article for title sort key
 function titleSortKey(title) {
   return (title || '').replace(/^(a |an |the )/i, '').trim();
@@ -108,7 +106,7 @@ function authorSortKey(rec) {
 
 // Build a RegExp from the query, respecting useRegex flag
 function buildRegex(query, flags, useRegex) {
-  const pattern = useRegex ? sanitizeQuery(query) : escapeLiteral(query);
+  const pattern = useRegex ? query : escapeLiteral(query);
   return new RegExp(pattern, flags);
 }
 
